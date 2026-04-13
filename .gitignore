@@ -1,0 +1,27 @@
+# TEMS runtime state (TGL#74)
+# 복원: tems rebuild 또는 python -m tems.rebuild_from_qmd
+memory/error_logs.db
+memory/error_logs.db-journal
+memory/error_logs.db-wal
+memory/error_logs.db-shm
+memory/_backup_tier1/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# Claude Code local settings (machine-specific paths/hooks)
+.claude/settings.local.json
+
+# Backups (machine-local)
+.backup/
+*.bak
+
+# OS
+Thumbs.db
+.DS_Store
+$PROFILE
