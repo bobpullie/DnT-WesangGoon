@@ -17,7 +17,8 @@
 import sys
 from pathlib import Path
 
-from tems.fts5_memory import MemoryDB
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from memory.fts5_memory import MemoryDB
 
 
 # ═══════════════════════════════════════════════════════════════

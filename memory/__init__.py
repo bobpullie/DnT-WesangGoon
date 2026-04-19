@@ -1,7 +1,7 @@
-"""위상군 TEMS — Topological Evolving Memory System"""
+"""위상군 TEMS — Topological Evolving Memory System (self-contained)"""
 
-from tems.fts5_memory import MemoryDB
-from tems.tems_engine import (
+from memory.fts5_memory import MemoryDB
+from memory.tems_engine import (
     HybridRetriever, HealthScorer, AnomalyCertifier, MetaRuleEngine,
     RuleGraph, PredictiveTGL, AdaptiveTrigger, TemporalGraph,
     EnhancedPreflight,

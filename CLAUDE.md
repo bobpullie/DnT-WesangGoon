@@ -34,16 +34,15 @@
 | `.claude/rules/team-delegation.md` | 에이전트 위임, 서브에이전트 호출 |
 | `.claude/rules/constraints.md` | 코드 검증, 엔트로피 관리, 지식 한계 |
 
-## 규칙 피드백 → TEMS 등록 (AutoMemory 아님)
+## 규칙 피드백 → TEMS 등록 (v2026.4 Phase 2 재정의)
 종일군이 작업 규칙/금지사항을 지시하면 **AutoMemory가 아닌 TEMS에 등록**한다:
-- `<rule-detected>` 태그가 주입되면 반드시 TEMS에 등록할 것
-- "이제부터/앞으로/항상" → `TCL` (체크리스트)
-- "하지 마/금지/절대" → `TGL` (방어 규칙)
-- 등록 방법:
-  ```bash
-  python "memory/tems_commit.py" --type TCL --rule "규칙 내용" --triggers "검색 키워드들" --tags "태그1,태그2"
-  ```
-- 개인 선호도/프로젝트 맥락만 AutoMemory에 저장한다
+- `<rule-detected>` 태그 주입 시 반드시 TEMS 등록
+- **분류 기준 (좁은 vs 넓은 케이스):**
+  - **TCL (좁은 규칙):** 특정 케이스 한정 명시적 규약. "이제부터/앞으로/항상" 명시 지시. BM25 키워드만으로 발동 가능. → 짧은 텍스트 + 키워드 풍부 등록
+  - **TGL (넓은 위상 패턴):** 동일/유사 사례 다수를 함께 차단하는 가드. 누적 실수에서 추출. dense semantic 매칭 필수. → `classification` (TGL-T/S/D/P/W/C/M) + `topological_case` + `forbidden`/`required` + `verification` 슬롯 필수
+- 등록은 `python memory/tems_commit.py`로 (분류·게이트 자동 적용)
+- 개인 선호도/프로젝트 맥락만 AutoMemory에 저장
+- 상세 프로토콜: `.claude/rules/tems-protocol.md`
 
 ## 전문 지식 백업
 TDA, LLM 아키텍처, 3DGS 관련 전문 지식은 `CLAUDE.full.md`에 백업. GCE 프로젝트 시작 시 복원.

@@ -1,8 +1,12 @@
 """
-TEMS Preflight Hook — UserPromptSubmit 자동 트리거 (범용 템플릿)
-================================================================
-에이전트의 .claude/tems_agent_id 마커 파일을 기반으로 DB를 찾고,
-preflight 검색을 수행합니다.
+위상군 Preflight Hook — UserPromptSubmit 자동 트리거
+=====================================================
+사용자 프롬프트가 제출될 때마다 Claude Code Hook에 의해 자동 실행됩니다.
+프롬프트에서 키워드를 추출하여 FTS5 BM25 검색을 수행하고,
+매칭된 TCL/TGL 규칙을 stdout으로 출력하여 위상군의 컨텍스트에 주입합니다.
+
+stdin: { "prompt": "...", "session_id": "...", ... }
+stdout: 매칭된 규칙 텍스트 (자동으로 위상군 컨텍스트에 주입됨)
 """
 
 import sys
@@ -10,28 +14,12 @@ import json
 import re
 from pathlib import Path
 
-from tems.fts5_memory import MemoryDB
-from tems.tems_engine import EnhancedPreflight, RuleGraph, HybridRetriever
+# memory 디렉토리를 import path에 추가
+MEMORY_DIR = Path(__file__).parent
+sys.path.insert(0, str(MEMORY_DIR.parent))
 
-
-def find_agent_root(start: Path) -> Path:
-    """상위 순회하며 .claude/tems_agent_id 찾기 (.git 탐색과 동일 패턴)"""
-    cur = start.resolve()
-    while cur != cur.parent:
-        marker = cur / ".claude" / "tems_agent_id"
-        if marker.exists():
-            return cur
-        cur = cur.parent
-    raise FileNotFoundError("tems_agent_id not found from " + str(start))
-
-
-# 에이전트 자기 식별
-AGENT_ROOT = find_agent_root(Path(__file__).parent)
-AGENT_ID = (AGENT_ROOT / ".claude" / "tems_agent_id").read_text(encoding="utf-8").strip()
-DB_PATH = AGENT_ROOT / "memory" / "error_logs.db"
-import os
-_reg_env = os.environ.get("TEMS_REGISTRY_PATH")
-REGISTRY_PATH = Path(_reg_env) if _reg_env else None
+from memory.fts5_memory import MemoryDB
+from memory.tems_engine import EnhancedPreflight, RuleGraph
 
 
 def strip_korean_suffix(word: str) -> str:
@@ -100,6 +88,10 @@ def extract_keywords(prompt: str, max_tokens: int = 20) -> list[str]:
         "from", "up", "about", "into", "through", "during",
         "and", "but", "or", "not", "no", "so", "if", "then",
         "please", "thanks", "yes", "no",
+        # Phase 0.5 generic noise words — 약매칭 차단
+        "테스트", "확인", "체크", "진행", "시작", "마무리", "정리",
+        "test", "check", "verify", "run", "start", "stop",
+        "그래", "좋아", "맞아", "괜찮", "어때", "어떤",
     }
 
     tokens = []
@@ -125,7 +117,8 @@ def extract_keywords(prompt: str, max_tokens: int = 20) -> list[str]:
     return unique[:max_tokens]
 
 
-## Context Budget — 주입 상한 (관리군 v2026.3.29 도입)
+## Context Budget — 주입 상한 (Phase 0.5: "조용한 TEMS" 아키텍처)
+## 종일군 지시(2026-04-19): 매 prompt 무차별 주입 금지. 키워드 강매칭 시에만 발동.
 MAX_TCL = 2      # TCL 최대 주입 수
 MAX_TGL = 2      # TGL 최대 주입 수
 MAX_CASCADE = 1  # CASCADE 최대 주입 수
@@ -133,12 +126,18 @@ MAX_PREDICT = 1  # 예측 최대 주입 수
 BM25_WEIGHT = 0.6
 THS_WEIGHT = 0.4
 
+# Phase 0.5: 매칭 임계값. final_score < 이 값이면 주입 안 함 (banner blindness 방지)
+SCORE_THRESHOLD = 0.55       # 0.6*BM25(1위)=0.6 + 0.4*THS(0.5)=0.2 → 0.8 만점, 0.55 = 강매칭만
+SEMANTIC_FALLBACK_ENABLED = True   # HybridRetriever (CUDA QMD dense) 폴백 활성 — BM25 키워드 한계 보완
+                                   # 종일군 정정(2026-04-19): qmd-embed 스킬 + tems-wesanggoon 컬렉션 활용
+
 
 def get_ths_scores() -> dict[int, tuple[float, str]]:
     """rule_health 테이블에서 (rule_id → (ths_score, status)) 매핑 로드"""
     import sqlite3
+    db_path = MEMORY_DIR / "error_logs.db"
     try:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
         rows = conn.execute("SELECT rule_id, ths_score, status FROM rule_health").fetchall()
         conn.close()
@@ -147,10 +146,121 @@ def get_ths_scores() -> dict[int, tuple[float, str]]:
         return {}
 
 
+def record_fire(rule_ids: list[int]) -> None:
+    """Phase 2A: 주입된 규칙의 fire_count++ + last_fired 갱신.
+
+    매칭만으로는 부족 — 실제로 컨텍스트에 주입된 규칙만 카운트한다.
+    rule_health에 row가 없으면 자동 생성.
+
+    Phase 3B 확장: TGL 카테고리 규칙은 active_guards.json 에도 기록하여
+    compliance_tracker 가 이후 도구 호출의 준수/위반을 자동 측정하도록 함.
+    """
+    if not rule_ids:
+        return
+    import sqlite3
+    from datetime import datetime
+    db_path = MEMORY_DIR / "error_logs.db"
+    now = datetime.now().isoformat()
+    try:
+        conn = sqlite3.connect(str(db_path))
+        # fire_count 갱신
+        for rid in rule_ids:
+            conn.execute("""
+                INSERT INTO rule_health (rule_id, fire_count, last_fired, ths_score, status, created_at)
+                VALUES (?, 1, ?, 0.5, 'warm', ?)
+                ON CONFLICT(rule_id) DO UPDATE SET
+                    fire_count = COALESCE(fire_count, 0) + 1,
+                    last_fired = excluded.last_fired
+            """, (rid, now, now))
+        conn.commit()
+
+        # Phase 3B: TGL 규칙만 active_guards에 push (compliance 추적 대상)
+        placeholders = ",".join(["?"] * len(rule_ids))
+        tgl_rows = conn.execute(
+            f"SELECT id, category, context_tags FROM memory_logs WHERE id IN ({placeholders}) AND category = 'TGL'",
+            rule_ids,
+        ).fetchall()
+        conn.close()
+
+        if tgl_rows:
+            _push_active_guards(tgl_rows, now)
+    except Exception as e:
+        # 카운팅 실패는 hook 동작을 막지 않음 — 단 진단 로그
+        try:
+            _log_diagnostic("record_fire_failure", e)
+        except Exception:
+            pass
+
+
+def _push_active_guards(tgl_rows: list, fired_at: str, remaining_checks: int = 8) -> None:
+    """TGL 규칙 발동을 active_guards.json 에 기록.
+
+    compliance_tracker 가 이후 PostToolUse 마다 읽어서 forbidden/failure_signature
+    위반 여부를 측정한다. 같은 규칙이 이미 활성이면 window만 리셋.
+    """
+    import sqlite3
+    guards_path = MEMORY_DIR / "active_guards.json"
+    try:
+        if guards_path.exists():
+            data = json.loads(guards_path.read_text(encoding="utf-8"))
+        else:
+            data = {"guards": []}
+
+        existing_by_id = {g.get("rule_id"): g for g in data.get("guards", []) if isinstance(g.get("rule_id"), int)}
+
+        for row in tgl_rows:
+            rid = row[0]
+            tags_raw = row[2] or ""
+            # slot 파싱
+            tags = {}
+            for part in tags_raw.split(","):
+                part = part.strip()
+                if ":" in part:
+                    k, _, v = part.partition(":")
+                    tags[k.strip()] = v.strip()
+
+            if rid in existing_by_id:
+                # 이미 활성 — 재발동. Phase 3 P1-a-follow 패치:
+                #   .update() 는 had_violation 을 덮어쓰므로 사용 금지. 슬롯을 개별 보충한다.
+                #   had_violation=True 인 guard 는 remaining_checks 도 리셋하지 않는다.
+                existing = existing_by_id[rid]
+                existing["fired_at"] = fired_at
+                existing["source"] = "preflight"
+                if not existing.get("had_violation"):
+                    existing["remaining_checks"] = remaining_checks
+                for slot, val in (
+                    ("classification", tags.get("classification", "")),
+                    ("tool_pattern", tags.get("tool_pattern", "")),
+                    ("failure_signature", tags.get("failure_signature", "")),
+                ):
+                    if val and not existing.get(slot):
+                        existing[slot] = val
+            else:
+                data.setdefault("guards", []).append({
+                    "rule_id": rid,
+                    "classification": tags.get("classification", ""),
+                    "tool_pattern": tags.get("tool_pattern", ""),
+                    "failure_signature": tags.get("failure_signature", ""),
+                    "source": "preflight",
+                    "fired_at": fired_at,
+                    "remaining_checks": remaining_checks,
+                })
+
+        guards_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        try:
+            _log_diagnostic("active_guards_push_failure", e)
+        except Exception:
+            pass
+
+
 def rank_by_ths(hits: list[dict], ths_map: dict[int, tuple[float, str]]) -> list[dict]:
     """BM25 순위(리스트 순서)와 THS 점수를 결합하여 재정렬.
 
-    archive 상태 규칙은 제외.
+    archive 상태 규칙은 제외. SCORE_THRESHOLD 미만은 제외 (Phase 0.5).
     """
     scored = []
     for rank, hit in enumerate(hits):
@@ -164,6 +274,11 @@ def rank_by_ths(hits: list[dict], ths_map: dict[int, tuple[float, str]]) -> list
         # BM25 순위 점수: 1위=1.0, 이후 감소
         bm25_score = 1.0 / (1 + rank)
         final_score = BM25_WEIGHT * bm25_score + THS_WEIGHT * ths_score
+
+        # Phase 0.5: 임계값 미만은 주입 안 함 (약매칭 차단)
+        if final_score < SCORE_THRESHOLD:
+            continue
+
         hit["_final_score"] = final_score
         hit["_ths"] = ths_score
         hit["_status"] = status
@@ -173,13 +288,13 @@ def rank_by_ths(hits: list[dict], ths_map: dict[int, tuple[float, str]]) -> list
     return scored
 
 
-def format_rules(preflight_result: dict, compact: bool = True) -> str:
+def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, list[int]]:
     """preflight 결과를 위상군 컨텍스트 주입용 텍스트로 포맷.
 
     compact=True: summary만 출력 (컨텍스트 절약)
     compact=False: correction_rule 전문 출력 (기존 방식)
 
-    v2026.3.29: THS 가중치 적용 + 컨텍스트 버짓 도입 (관리군)
+    Phase 2A: 반환 (output_text, fired_ids) — 실제 주입된 규칙 ID만 카운팅 대상
     """
     # THS 점수 로드
     ths_map = get_ths_scores()
@@ -191,8 +306,9 @@ def format_rules(preflight_result: dict, compact: bool = True) -> str:
     predictions = preflight_result.get("predictions", [])[:MAX_PREDICT]
 
     if not tcl_hits and not tgl_hits and not cascade_hits and not predictions:
-        return ""
+        return "", []
 
+    fired_ids: list[int] = []
     lines = []
     lines.append("<preflight-memory-check>")
 
@@ -200,19 +316,33 @@ def format_rules(preflight_result: dict, compact: bool = True) -> str:
         lines.append("[TCL]")
         for r in tcl_hits:
             text = r.get("summary") or r.get("correction_rule", "") if compact else r.get("correction_rule", "")
-            lines.append(f"  #{r.get('id', '?')}: {text}")
+            rid = r.get('id', '?')
+            lines.append(f"  #{rid}: {text}")
+            if isinstance(rid, int):
+                fired_ids.append(rid)
 
+    # Phase 0 T2.2: TGL은 항상 풀텍스트로 주입 (가드 행동이 잘리지 않도록)
     if tgl_hits:
         lines.append("[TGL]")
         for r in tgl_hits:
-            text = r.get("summary") or r.get("correction_rule", "") if compact else r.get("correction_rule", "")
-            lines.append(f"  #{r.get('id', '?')}: {text}")
+            text = r.get("correction_rule", "") or r.get("summary", "")
+            rid = r.get('id', '?')
+            lines.append(f"  #{rid}: {text}")
+            if isinstance(rid, int):
+                fired_ids.append(rid)
 
     if cascade_hits:
         lines.append("[CASCADE]")
         for r in cascade_hits:
-            text = r.get("summary") or r.get("correction_rule", "") if compact else r.get("correction_rule", "")
-            lines.append(f"  #{r.get('id', '?')}: [{r.get('category', '?')}] {text}")
+            cat = r.get('category', '?')
+            if cat == "TGL":
+                text = r.get("correction_rule", "") or r.get("summary", "")
+            else:
+                text = r.get("summary") or r.get("correction_rule", "") if compact else r.get("correction_rule", "")
+            rid = r.get('id', '?')
+            lines.append(f"  #{rid}: [{cat}] {text}")
+            if isinstance(rid, int):
+                fired_ids.append(rid)
 
     if predictions:
         lines.append("[PREDICT]")
@@ -221,21 +351,25 @@ def format_rules(preflight_result: dict, compact: bool = True) -> str:
             lines.append(f"  ({conf:.0%}) {p.get('predicted_error', '')[:40]}")
 
     lines.append("</preflight-memory-check>")
-    return "\n".join(lines)
+    return "\n".join(lines), fired_ids
 
 
-def detect_project_scope(agent_id: str) -> list[str]:
-    """tems_registry.json에서 에이전트의 프로젝트 조회"""
-    scopes = ["project:meta", "project:all", ""]
-    try:
-        if REGISTRY_PATH is None:
-            return scopes
-        registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
-        projects = registry.get("agents", {}).get(agent_id, {}).get("projects", [])
-        for p in projects:
-            scopes.append(f"project:{p.lower()}")
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass  # 레지스트리 없으면 기본 스코프만 사용
+def detect_project_scope(cwd: str) -> list[str]:
+    """현재 작업 디렉토리에서 프로젝트명을 감지하여 허용할 project 태그 목록 반환.
+
+    v2026.3.29: 관리군 도입 — 프로젝트 스코핑으로 무관한 규칙 주입 방지
+    """
+    cwd_lower = cwd.lower().replace("\\", "/")
+
+    scopes = ["project:meta", "project:all"]  # 메타/범용 규칙은 항상 허용
+
+    if "mrv" in cwd_lower or "dnt" in cwd_lower or "agentinterface" in cwd_lower:
+        scopes.append("project:dnt")
+        scopes.append("project:mrv")
+
+    # 태그가 없는 레거시 규칙도 허용 (점진적 마이그레이션)
+    scopes.append("")
+
     return scopes
 
 
@@ -305,14 +439,14 @@ def main():
             sys.exit(0)
 
         # 프로젝트 스코프 감지 (v2026.3.29 관리군)
-        allowed_scopes = detect_project_scope(AGENT_ID)
+        allowed_scopes = detect_project_scope(cwd)
 
         # 키워드 추출
         keywords = extract_keywords(prompt)
         if not keywords:
             sys.exit(0)
 
-        db = MemoryDB(db_path=str(DB_PATH))
+        db = MemoryDB()
 
         # FTS5 prefix 쿼리 구성
         fts_query = " OR ".join(f'"{kw}"*' for kw in keywords)
@@ -334,18 +468,18 @@ def main():
                 except Exception:
                     continue
 
-        # 1-b단계: BM25가 빈약하면 HybridRetriever 시맨틱 폴백
+        # 1-b단계: BM25가 빈약하면 HybridRetriever 시맨틱 폴백 (Phase 0.5: 기본 비활성)
+        # 시맨틱 폴백은 약매칭을 만들어내는 주범 — 종일군 지시로 비활성화
         total_bm25 = sum(len(base_result.get(c, [])) for c in ("tcl_hits", "tgl_hits"))
-        if total_bm25 < 2:
+        if SEMANTIC_FALLBACK_ENABLED and total_bm25 < 2:
             try:
-                hybrid = HybridRetriever(db=db, collection=f"tems-{AGENT_ID}")
+                from memory.tems_engine import HybridRetriever
+                hybrid = HybridRetriever(db)
                 hybrid_result = hybrid.preflight(" ".join(keywords), limit=5)
-                # BM25 결과에 dense 결과 병합 (중복 제거)
                 existing_ids = set()
                 for cat in ("tcl_hits", "tgl_hits", "general_hits"):
                     for hit in base_result.get(cat, []):
                         existing_ids.add(hit.get("id"))
-
                 for cat in ("tcl_hits", "tgl_hits", "general_hits"):
                     for hit in hybrid_result.get(cat, []):
                         if hit.get("id") not in existing_ids:
@@ -375,7 +509,7 @@ def main():
 
             # 3단계: Predictive TGL — TGL이 매칭되었으면 후속 에러 예측
             try:
-                from tems.tems_engine import PredictiveTGL
+                from memory.tems_engine import PredictiveTGL
                 predictor = PredictiveTGL(db)
                 for tgl in base_result.get("tgl_hits", []):
                     if isinstance(tgl.get("id"), int):
@@ -408,19 +542,44 @@ def main():
         if rule_type:
             print(f"<rule-detected type=\"{rule_type}\">")
             print(f"종일군의 지시에 규칙성 패턴이 감지되었습니다. AutoMemory가 아닌 TEMS에 등록하세요:")
-            print(f'python "{AGENT_ROOT}/memory/tems_commit.py" --type {rule_type} --rule "규칙 내용" --triggers "키워드" --tags "태그"')
+            print(f'python memory/tems_commit.py --type {rule_type} --rule "규칙 내용" --triggers "키워드" --tags "태그"')
             print(f"</rule-detected>")
 
         # 매칭 결과 포맷
-        output = format_rules(result)
+        output, fired_ids = format_rules(result)
         if output:
             print(output)
+            # Phase 2A: 실제로 주입된 규칙의 fire_count 갱신 (cap 후 ID만)
+            record_fire(fired_ids)
 
-    except Exception:
-        # hook 실패 시 조용히 종료 (위상군 동작을 방해하지 않음)
-        pass
+    except Exception as e:
+        # Phase 0 T1.1: silent fail 금지. 구조화 로깅 + degraded 신호 출력
+        _log_diagnostic("preflight_failure", e)
+        try:
+            print(f"<preflight-degraded reason=\"{type(e).__name__}: {str(e)[:120]}\"/>")
+        except Exception:
+            pass
 
     sys.exit(0)
+
+
+def _log_diagnostic(event_type: str, exc: Exception) -> None:
+    """Phase 0 T1.1: preflight 실패를 jsonl로 영속화. 자기관찰 채널."""
+    import traceback
+    from datetime import datetime
+    try:
+        log_path = MEMORY_DIR / "tems_diagnostics.jsonl"
+        record = {
+            "timestamp": datetime.now().isoformat(),
+            "event": event_type,
+            "exc_type": type(exc).__name__,
+            "exc_msg": str(exc)[:300],
+            "traceback": traceback.format_exc()[-800:],
+        }
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # 로깅 실패는 hook을 막지 않음 (단, 이중 fail 시에만)
 
 
 if __name__ == "__main__":

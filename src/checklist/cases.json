@@ -1,0 +1,53 @@
+{
+  "_description": "DVC 케이스 레지스트리. 버그/문제 발생 시 여기에 일반화된 케이스를 추가한다.",
+  "_schema": {
+    "case_id": "UPPER_SNAKE_CASE (+ _NNN 번호) 형식. 예: DISPLAY_HUMANIZE_001. 바이패스 매칭은 prefix 기반.",
+    "category": "chk_{category}.py 파일과 짝을 이루는 카테고리명. 예: display, config, data_pipeline",
+    "title": "사람이 읽는 점검 항목명 (한국어 또는 영어)",
+    "generalized": "단일 버그에서 추출한 일반화된 점검 대상 서술. 유사 케이스까지 포착하도록 작성",
+    "origin_bug": "이 케이스가 어떤 실제 사고에서 귀납되었는지 (날짜 + 간단한 상황). 왜(why) 보존",
+    "checker": "구현 위치. 예: 'chk_display.py → check_display_humanize_*' — 여러 메서드 가능",
+    "scope": "점검 대상 파일/경로 범위 (glob 또는 설명)",
+    "auto_discover": "true = 정적 스캔 기반 자동 탐지 가능, false = 수동 정기 점검만",
+    "added_date": "YYYY-MM-DD 등록일",
+    "severity": "CRITICAL | HIGH | MEDIUM | LOW | INFO (기본 MEDIUM)"
+  },
+  "cases": [
+    {
+      "case_id": "EXAMPLE_README_001",
+      "category": "example",
+      "title": "프로젝트 README 존재",
+      "generalized": "프로젝트 루트에 최소한의 README.md (100 bytes 이상) 가 존재하는지",
+      "origin_bug": "신규 프로젝트 스캐폴딩 시 README 생성을 잊어 onboarding 혼란",
+      "checker": "chk_example.py → check_example_readme_exists",
+      "scope": "{project_root}/README.md",
+      "auto_discover": true,
+      "added_date": "2026-04-20",
+      "severity": "LOW"
+    },
+    {
+      "case_id": "EXAMPLE_PRINT_DEBUG_001",
+      "category": "example",
+      "title": "print() 디버그 흔적 탐지",
+      "generalized": "실행 모듈에 디버그용 print() 호출이 남아있는지 (logging 으로 대체되었는지)",
+      "origin_bug": "디버깅 중 print() 삽입 후 제거 잊어 프로덕션 stdout 오염",
+      "checker": "chk_example.py → check_example_print_debug",
+      "scope": "src/**/*.py (test_*.py, runner.py 제외)",
+      "auto_discover": true,
+      "added_date": "2026-04-20",
+      "severity": "LOW"
+    },
+    {
+      "case_id": "EXAMPLE_GITIGNORE_001",
+      "category": "example",
+      "title": ".gitignore 공통 항목 존재",
+      "generalized": ".gitignore 가 존재하고 __pycache__, .env, *.pyc 같은 공통 차단 항목이 포함되는지",
+      "origin_bug": ".env 커밋 사고 (실제 사례 다수)",
+      "checker": "chk_example.py → check_example_gitignore_coverage",
+      "scope": "{project_root}/.gitignore",
+      "auto_discover": true,
+      "added_date": "2026-04-20",
+      "severity": "MEDIUM"
+    }
+  ]
+}

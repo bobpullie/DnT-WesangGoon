@@ -1,0 +1,6 @@
+{
+  "src_dir": "src",
+  "data_dir": "data",
+  "logs_dir": "logs",
+  "scan_dirs": {}
+}

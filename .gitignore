@@ -5,6 +5,23 @@ memory/error_logs.db-journal
 memory/error_logs.db-wal
 memory/error_logs.db-shm
 memory/_backup_tier1/
+memory/_post_S29_standardization/
+memory/_post_S32_phase3_preP0_patch/
+memory/_post_S33_P1a_follow_patch/
+
+# Phase 0 자기관찰 채널 — 머신별 런타임 로그
+memory/tems_diagnostics.jsonl
+memory/tool_failures.jsonl
+memory/compliance_events.jsonl
+
+# Phase 1 retrospective hook rate limit marker
+memory/.retrospective_last_run
+
+# Phase 3 runtime state (TGL guard window)
+memory/active_guards.json
+
+# DVC runtime logs (per-machine)
+logs/checklist/
 
 # Python
 __pycache__/
