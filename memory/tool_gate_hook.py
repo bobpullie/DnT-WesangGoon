@@ -215,6 +215,55 @@ def record_active_guard(rule_id: int, severity: str, classification: str,
         _log_diagnostic("tool_gate_active_guard_write_failure", e)
 
 
+# SDC Auto-Dispatch 트리거: git 쓰기 명령 집합
+_SDC_GIT_WRITE_PATTERN = re.compile(
+    r"\bgit\s+(commit|push|merge|rebase|cherry-pick|revert)\b",
+    re.IGNORECASE,
+)
+
+
+def check_sdc_gate(tool_name: str, tool_input: dict, active_guards_data: dict) -> "str | None":
+    """SDC Auto-Dispatch Check (TCL #120) — git 쓰기 명령 트리거 시 brief 제출 여부 검사.
+
+    Returns:
+        매칭 + brief 미제출 시 <sdc-gate-alert>...</sdc-gate-alert> 문자열.
+        그 외 None.
+    """
+    # Bash 도구가 아니면 패스
+    if tool_name != "Bash":
+        return None
+
+    cmd = str((tool_input or {}).get("command", ""))
+    if not cmd:
+        return None
+
+    # TEMS 자기 자신 호출은 매칭 제외 — self-trigger 루프 방지
+    if is_self_invocation(tool_name, tool_input):
+        return None
+
+    # git 쓰기 명령 매칭 검사
+    m = _SDC_GIT_WRITE_PATTERN.search(cmd)
+    if not m:
+        return None
+
+    verb = m.group(1).lower()
+
+    # brief 제출 완료 여부 확인 — True 이면 gate clear
+    if active_guards_data.get("sdc_brief_submitted") is True:
+        return None
+
+    return (
+        "<sdc-gate-alert>\n"
+        f"SDC Auto-Dispatch Check (TCL #120) 경고: git {verb} 호출 감지됨.\n"
+        "현재 세션에 SDC brief 제출 기록 없음 (sdc_brief_submitted=false).\n"
+        "권장 절차: 3-question gate (Q1 Invariance / Q2 Overhead / Q3 Reversibility) verbalize"
+        " → 판정(KEEP/DELEGATE/STAGING) 명시 → 진행.\n"
+        "STAGING 판정이면 git add 까지만 본체 허용, commit/push 는 brief 제출 후.\n"
+        "참조: .claude/skills/SDC.md § Auto-Dispatch Check\n"
+        "</sdc-gate-alert>"
+    )
+
+
 def main():
     try:
         raw = sys.stdin.read()
@@ -238,8 +287,6 @@ def main():
     target = build_match_target(tool_name, tool_input)
 
     rules = load_active_tgl_t_rules()
-    if not rules:
-        sys.exit(0)
 
     blocking_hits = []
     warning_hits = []
@@ -275,6 +322,7 @@ def main():
         sys.exit(0)
 
     # 경고만 — 호출은 허용
+    output_lines = []
     if warning_hits:
         lines = ["<tgl-tool-alert>"]
         for rule in warning_hits[:3]:
@@ -287,7 +335,22 @@ def main():
             lines.append(f"    ↳ {body_snippet}")
         lines.append("  → 위 가드를 준수하여 호출 진행. 준수 여부는 compliance_tracker 가 추적.")
         lines.append("</tgl-tool-alert>")
-        print("\n".join(lines))
+        output_lines.append("\n".join(lines))
+
+    # SDC gate 검사 — TGL-T 루프 완료 직후 실행, warning only (deny 승격 금지)
+    active_guards_data: dict = {}
+    try:
+        if ACTIVE_GUARDS_PATH.exists():
+            active_guards_data = json.loads(ACTIVE_GUARDS_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        _log_diagnostic("tool_gate_active_guards_read_failure", e)
+
+    sdc_alert = check_sdc_gate(tool_name, tool_input, active_guards_data)
+    if sdc_alert:
+        output_lines.append(sdc_alert)
+
+    if output_lines:
+        print("\n".join(output_lines))
 
     sys.exit(0)
 
