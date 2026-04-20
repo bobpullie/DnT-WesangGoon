@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/bluei/.claude/skills/**)",
+      "Read(//e//**)",
+      "Read(//c/Users/bluei/.claude/**)",
+      "Read(//e/QuantProject/DnT_Fermion/.claude/skills/**)",
+      "Read(//e/01_houdiniAgent/.claude/skills/**)",
+      "Read(//e/00_unrealAgent/.claude/skills/**)",
+      "Read(//e/DnT/MRV_DnT/.claude/skills/**)"
+    ]
+  }
+}
