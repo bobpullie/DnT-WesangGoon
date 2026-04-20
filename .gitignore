@@ -42,3 +42,7 @@ __pycache__/
 Thumbs.db
 .DS_Store
 $PROFILE
+
+# Plugin installs (independent git repos with their own upstream)
+# - converted to clones in S35; tracked by their own repo (bobpullie/DVC etc.)
+.claude/skills/dvc/
