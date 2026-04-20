@@ -2,6 +2,15 @@
 
 > append-only. 삭제 금지. 최신이 위.
 
+## 2026-04-21 — [Session Close] S37 종료
+- [Ingest] decisions/2026-04-21_handover-skill-packaging (Implemented) — bobpullie/handover 독립 스킬 패키징 결정
+- L2 추출: `docs/session_archive/20260421_session1_raw.md` (Q=17, A=29)
+- SDC-Helper `memory/sdc_commit.py` 구현 + 배포 (`4058e2a`)
+- bobpullie/handover 리포 신설 배포 (`c374201`, `aa7d56c`)
+- 위상군 wiki 페이지: 16 → 17 (+decision)
+- 핸드오버: [[../../handover_doc/2026-04-21_session37]]
+- QMD recap: [[../../qmd_drive/recaps/2026-04-21_session37]]
+
 ## 2026-04-20 — [Session Close] S36 종료
 - [Ingest] decisions/2026-04-20_sdc-gate-phase3-integration (Implemented) — SDC Auto-Dispatch gate Phase 3 편입 / 커밋 `8b5cc06`
 - [Ingest] postmortems/20260420_sdc-gate-violation (Confirmed, T1+T2) — S36 본체 SDC 위반 실사건 + 축적 교훈
