@@ -48,6 +48,7 @@ SELF_INVOCATION_MARKERS = [
     "memory/pattern_detector.py",
     "memory/decay.py",
     "memory/compliance_tracker.py",
+    "memory/sdc_commit.py",
 ]
 
 

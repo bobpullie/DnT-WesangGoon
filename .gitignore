@@ -13,6 +13,7 @@ memory/_post_S33_P1a_follow_patch/
 memory/tems_diagnostics.jsonl
 memory/tool_failures.jsonl
 memory/compliance_events.jsonl
+memory/sdc_briefs.jsonl
 
 # Phase 1 retrospective hook rate limit marker
 memory/.retrospective_last_run
