@@ -1,6 +1,6 @@
 # wesang Wiki — Index
 
-> 마지막 갱신: 2026-04-20 (S35 — SDC concept Ingest)
+> 마지막 갱신: 2026-04-20 (S36 — SDC gate Phase 3 편입 decision + postmortem)
 
 ```dataview
 TABLE date, status, scope
@@ -19,6 +19,7 @@ LIMIT 20
 - [[decisions/2026-04-20_tems-phase3-deployment]] — Phase 3 (tool_gate + compliance_tracker) 위상군 단독 관찰 유보 (Observation)
 - [[decisions/2026-04-20_dvc-skill-promotion]] — DVC 글로벌 스킬 승격 + 위상군 dogfood 설치 (Accepted)
 - [[decisions/2026-04-20_plugin-remote-repos]] — 4개 플러그인 원격 레포 체계 확립 (bobpullie/{TEMS,TWK,DVC,SDC}) (Accepted)
+- [[decisions/2026-04-20_sdc-gate-phase3-integration]] — SDC Auto-Dispatch gate 를 Phase 3 tool_gate_hook 에 편입 (TCL #120 자동 강제) (Implemented, S36)
 
 ## Patterns
 
@@ -36,7 +37,7 @@ LIMIT 20
 
 ## Postmortems
 
-*(아직 없음)*
+- [[postmortems/20260420_sdc-gate-violation]] — S36 본체 SDC Auto-Dispatch 위반 → gate 편입 트리거 (Confirmed, T1+T2)
 
 ## Principles
 

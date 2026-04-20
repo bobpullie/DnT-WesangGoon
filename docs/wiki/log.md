@@ -2,6 +2,18 @@
 
 > append-only. 삭제 금지. 최신이 위.
 
+## 2026-04-20 — [Session Close] S36 종료
+- [Ingest] decisions/2026-04-20_sdc-gate-phase3-integration (Implemented) — SDC Auto-Dispatch gate Phase 3 편입 / 커밋 `8b5cc06`
+- [Ingest] postmortems/20260420_sdc-gate-violation (Confirmed, T1+T2) — S36 본체 SDC 위반 실사건 + 축적 교훈
+- [Ingest] daily/2026-04-20.md — Calendar ↔ Dataview 허브 (wiki/ 바깥이지만 index 연결)
+- TWK 글로벌 스킬 frontmatter 계약 Dataview+Calendar 호환화 (`bobpullie/TWK@db9766e`)
+- 6 page-templates 정규화 + daily-note.md 신설 + lint 강화
+- 위상군 wiki 페이지: 14 → 16 (+decision +postmortem)
+- 누적 push (`bobpullie/DnT-WesangGoon@8b5cc06`): S34-S35 대규모 정리 + SDC gate
+- 다음 lint 주기: S41 (5세션 후) 또는 20 페이지 시점
+- 핸드오버: [[../../handover_doc/2026-04-20_session36]]
+- QMD recap: [[../../qmd_drive/recaps/2026-04-20_session36]]
+
 ## 2026-04-20 — [Session Close] S35 종료
 - L2 추출: `docs/session_archive/20260420_session2_raw.md` (Q=16, A=56, 기계적, 0 토큰)
 - TCL 신규 (5+1): #116 QMD 로컬 · #117 분류 Sonnet 위임 · #118 TWK rename · #119 원격 레포 · #120 SDC Auto-Dispatch Check · #121 S35 교훈

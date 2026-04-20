@@ -1,5 +1,5 @@
 # 위상군 — 현재 프로젝트 상태 (Rolling State)
-> 마지막 갱신: 2026-04-20 Session 35 종료
+> 마지막 갱신: 2026-04-20 Session 36 종료
 
 ## TEMS 호출 매뉴얼 (조용한 TEMS 아키텍처)
 **기본 정책:** 매 prompt 무차별 주입 금지. 키워드 강매칭(score≥0.55) 시에만 자동 발동.
@@ -7,7 +7,7 @@
 ```bash
 python memory/tems_commit.py --type {TCL|TGL} --rule "..." --triggers "키워드들" --tags "..."
 ```
-**자동 발동 트리거:** TCL 패턴(`이제부터/앞으로/항상`) / TGL 패턴(`하지마/금지/never/don't`) / Bash 실패 / preflight 자체 실패 / [Phase 3] TGL-T PreToolUse / active guard 위반.
+**자동 발동 트리거:** TCL 패턴(`이제부터/앞으로/항상`) / TGL 패턴(`하지마/금지/never/don't`) / Bash 실패 / preflight 자체 실패 / [Phase 3] TGL-T + **SDC PreToolUse (S36 신규)** / active guard 위반.
 
 ## ⚠️ DVC ≠ TEMS TCL (용어 분리)
 - **DVC case** (결정론적 빌드 검증) = `src/checklist/cases.json` + `chk_*.py`. `DISPLAY_HUMANIZE_001` 형식
@@ -18,106 +18,112 @@ python memory/tems_commit.py --type {TCL|TGL} --rule "..." --triggers "키워드
 - **본체 (Opus 4.7):** 아키텍처 설계 · TEMS 규칙 분류 · Phase 전환 판정 · 핸드오버 결정 서술 · 팀 델리게이션
 - **Sonnet 서브에이전트:** TEMS 모듈 구현 · Phase 이식 · 재분류 · DVC case · smoke test · Explore
 - **Opus 서브에이전트:** `superpowers:code-reviewer` (Audit) · `advisor` (2안 비교)
-- 상세: `.claude/skills/SDC.md` (Subagent Delegation Contract) + [[docs/wiki/concepts/SDC]]
+- 상세: `.claude/skills/SDC.md` ([[docs/wiki/concepts/SDC]])
+- **S36 강화:** Phase 3 tool_gate_hook 에 **SDC Auto-Dispatch PreToolUse gate 편입** (TCL #120 자동 강제). git 쓰기 명령 직전 `<sdc-gate-alert>` 경고.
 
-## TWK / TriadWiKi (S34 도입, S35 llm-wiki → TWK rename)
-- 글로벌 스킬: `C:/Users/bluei/.claude/skills/TWK/` (구 llm-wiki/)
-- 프로젝트 config: `wiki.config.json` (Mode B, 5 섹션)
-- 구조: `docs/wiki/{decisions,patterns,concepts,postmortems,principles}/` + `index.md` + `log.md`
+## TWK / TriadWiKi (S34 도입, S35 llm-wiki → TWK rename, **S36 Dataview+Calendar 호환화**)
+- 글로벌 스킬: `C:/Users/bluei/.claude/skills/TWK/` (upstream: `bobpullie/TWK@db9766e`)
+- 프로젝트 config: `wiki.config.json` v1.1 (Mode B, 5 섹션, frontmatter 계약 명시)
+- 구조: `docs/wiki/{decisions,patterns,concepts,postmortems,principles}/` + `index.md` + `log.md` + `docs/daily/` (Calendar 허브)
 - L2 추출: `docs/session_archive/` (session-lifecycle Step 5)
 - Lint 주기: 5세션 / 10페이지
-- 현재 13 pages compiled (TEMS 6 + DVC 5 + SDC 1 + Per_Agent_Local_QMD 1)
+- **Frontmatter 계약**: `date` 무인용 ISO YYYY-MM-DD (Dataview Date coerce), `tags` 복수형 인라인, `cssclass` 템플릿별
+- **Calendar ↔ Dataview 연동**: `docs/daily/YYYY-MM-DD.md` 허브 + `WHERE date = this.file.day` 쿼리
+- 현재 16+ pages (S36 에 SDC gate decision + postmortem 추가 예정)
 
 ## QMD 로컬 관리 (S35 도입, 전 에이전트 공통)
 - **정책:** 모든 에이전트는 QMD 데이터를 프로젝트 로컬 `qmd_drive/` 에서 관리 (TCL #116).
 - **구조:** `qmd_drive/sessions/` (Claude 세션 export) + `qmd_drive/recaps/` (session-lifecycle Step 3 recap) + `memory/qmd_rules/` (TEMS 규칙).
-- **위상군 이관 완료:** 91 files → `qmd_drive/` (sessions 45 + recaps 46). `wesanggoon-sessions`(broken) 제거, `wesanggoon-qmd-drive`(로컬) 등록·embed(48 docs, 63 chunks).
+- **위상군 이관 완료:** 94 files → `qmd_drive/` (sessions 48 + recaps 46). `wesanggoon-sessions`(broken) 제거, `wesanggoon-qmd-drive`(로컬) 등록·embed(48 docs, 63 chunks).
 - **타 에이전트 대기:** 리얼군 / 코드군 / 디니군 / 어플군 / 기록군 / 빌드군 / 위상군(독립).
 - **원리:** [[docs/wiki/principles/Per_Agent_Local_QMD]]
 
 ## 현재 마일스톤
 - **메인 프로젝트:** DnT v3 (Turn 2, M2~M4)
-- **메타 프로젝트:** Atlas 비활성화 (S34) — SKILL.md.disabled
-- **TEMS 위상군:** Phase 0-3 + Migration + SDC(S34, subagent-brief rename→SDC) + LLM Wiki(S34) — 규칙 #1~#114
+- **메타 프로젝트:** Atlas 비활성화 (S34)
+- **TEMS 위상군:** Phase 0-3 + Migration + SDC(S34~S35) + SDC Gate(S36) + TWK(S34~S36) — 규칙 #1~#121
 - **TEMS 표준화:** Wave 1 (Phase 0-2) 전 에이전트 표준 승격 (S34 결정)
 - **독립 위상군 repo:** bobpullie/wesangAgent (03d6638, 변경 없음)
 
-## 이번 세션 성과 (Session 34)
-- **TEMS 표준화 판정:** 코드군 8세션 운영 결과 Wave 1 코드 무수정 확인 → Phase 0-2 공식 표준. Phase 3 위상군 단독 관찰 1-2주.
-- **디니군 Wave 1 이식:** 10+1 파일 복사 + PostToolUse Bash/Stop hook 추가. 기존 14 규칙 보존.
-- **리얼군 Wave 1 재이식 (구조적 사고 해결):** 이원화 DB(`memory/error_logs.db` 빈 vs `tems/tems_db.db` 10규칙) 발견 → migration 10/11 규칙 보존. memory_bridge 경로 정정.
-- **SDC 스킬 2군 장착 (← S35에서 subagent-brief → SDC rename):** 위상군(TEMS/아키텍처 도메인) + 리얼군(Unreal 도메인). Opus/Sonnet 분업 매트릭스 + 5항목 템플릿 + 5 작업 유형 템플릿. TCL #113 등록.
-- **Atlas 비활성화:** SKILL.md → .disabled, 위상군 settings atlas permission 제거. 기록군 graceful exit 기구현이라 무수정.
-- **글로벌 llm-wiki 스킬 신설 (→ S35에서 TWK로 rename):** Karpathy 3-Layer + 3 Operations 범용화. 20 파일. Mode A(Pure) / B(Session-Extract) 지원. init/lint/extract 스크립트. 스킬 로더 공식 등록.
-- **위상군 wiki 초기화 + 통합:** session-lifecycle Step 5-7 추가. CLAUDE.md 조건부 규칙 등록. TCL #114. 11 페이지 첫 compilation (TEMS 6 + DVC 5) + lint 0건.
-- **누적 규칙:** TCL/TGL #1~#116, archive: #64, #98. 신규 S34: #113 #114 #115. S35: #116 (QMD 로컬 관리).
+## 이번 세션 성과 (Session 36, 종료)
+- **TWK Dataview+Calendar 호환 frontmatter 계약 확립 (`bobpullie/TWK@db9766e`)**
+  - 6 page-templates 통일 frontmatter + daily-note.md 신설 + lint 강화 (quoted date / 단수 tag 탐지)
+  - SKILL.md + obsidian-integration.md 갱신
+- **위상군 wiki 반영 + Daily Note 허브**
+  - `wiki.config.json` v1.1 + `docs/templates/daily-note.md` + `docs/daily/2026-04-20.md`
+  - Calendar 에서 4월 20일 클릭 시 Dataview 쿼리가 13 wiki 페이지 자동 집계
+- **S34-S35 누적 미커밋 정리 + push**
+  - 5 그룹 논리 분할 (QMD 이관 / TEMS 규칙 / 스킬 / wiki+vault / 핸드오버)
+  - `bobpullie/DnT-WesangGoon@4c9b468..82fcf5d` push 완료
+- **SDC Gate Phase 3 편입 (`8b5cc06`, TCL #120 자동 강제)**
+  - 세션 중 발생한 SDC violation 을 즉시 root cause fix 로 전환
+  - Sonnet 위임(brief 5항목) + trust-but-verify(5/5 pass) + 본체 commit/push (STAGING 프로토콜 실증)
+  - `check_sdc_gate()` PreToolUse, warning only, self-invocation 제외
+- **누적 규칙:** TCL/TGL #1~#121, archive: #64, #98. 신규 S36: 없음 (위반을 규칙 등록이 아닌 hook 편입으로 해결).
 
 ## 이전 세션 성과 요약
 
+### Session 35 — SDC rename + QMD 로컬 + 원격 레포 + SDC Auto-Dispatch Check
+- subagent-brief → SDC rename / QMD 로컬 관리 정책 (TCL #116)
+- 4개 플러그인 원격 레포 (TEMS/TWK/DVC/SDC) 생성 + pull-based 업데이트
+- SDC Auto-Dispatch Check 도입 (TCL #120, Hybrid trigger 모드, 3-question gate)
+
+### Session 34 — TEMS 표준화 + SDC + TWK + Atlas 비활성화
+- Wave 1 (Phase 0-2) 전 에이전트 표준 승격 / 디니·리얼군 이식
+- SDC 스킬 2군 장착 (위상군 + 리얼군)
+- 글로벌 TWK 스킬 신설 (Karpathy 3-Layer + 3 Operations)
+- Atlas 비활성화
+
 ### Session 33 — Phase 3 재검증 + DVC skill + 코드군 Wave 1
-- Phase3-Audit-Reverify + P1-a-follow + stale eviction 패치
+- Phase3-Audit-Reverify + stale eviction 패치
 - DVC skill 생성 + 위상군 dogfood
-- 코드군 Wave 1 이식 (52f8dff) + Migration-Classification 31건
+- 코드군 Wave 1 이식 + Migration-Classification 31건
 
-### Session 32 — Phase 3 구현 + P0/P1 패치
-- 3A tool_gate_hook + 3B compliance_tracker + 3C decay
-- P0/P1 다수 패치
-
-### Session 31 — Phase 0/0.5/0.6/1/2 구축
-- 자기관찰 + 조용한 TEMS + 자가진화 + 게이트
-
-## 다음 세션 부트 (S35)
+## 다음 세션 부트 (S37)
 ```
-작업 디렉토리: E:\DnT\DnT_WesangGoon (주), 타 에이전트 이식 대기
-HEAD (위상군): eec891e — S31-S33 통합 커밋, 미푸시 (+ S34 대규모 변경 미커밋)
+작업 디렉토리: E:\DnT\DnT_WesangGoon (주)
+HEAD (위상군): 8b5cc06 — master origin 동기화
+HEAD (위상군 독립): 03d6638 (변경 없음)
+HEAD (TWK 글로벌): bobpullie/TWK@db9766e
 HEAD (코드군): 52f8dff — Wave 1 TEMS, 미푸시
 HEAD (디니군): S34 이식 변경, 미커밋
 HEAD (리얼군): S34 이식 + migration 변경, 미커밋
-HEAD (wesangAgent 독립): 03d6638 (변경 없음)
 
-위상군 TEMS: Phase 0-3 + Migration + SDC + TWK(구 llm-wiki). 규칙 #1~#114 (S35에서 SDC wiki concept 추가 예정).
-위상군 wiki: 11 페이지 (TEMS/DVC) + index + log.
-위상군 CLAUDE.md: v2026.4.20 (모델 배치 원칙 + TWK 행).
-코드군 TEMS: Wave 1 + fermion-wiki 자체 운영.
-디니군 TEMS: Wave 1 (S34).
-리얼군 TEMS: Wave 1 + SDC (S34).
+위상군 TEMS: Phase 0-3 + Migration + SDC + SDC Gate(S36) + TWK. 규칙 #1~#121.
+위상군 wiki: 16 페이지 + daily note 허브 + (S37 추가 예정: SDC gate decision + postmortem)
+위상군 CLAUDE.md: v2026.4.20
 
 Hook 구성 (위상군 동일):
   - SessionStart: CURRENT_STATE 주입
   - UserPromptSubmit: preflight_hook
-  - PreToolUse '': tool_gate_hook (Phase 3, 위상군 전용)
+  - PreToolUse '': tool_gate_hook (TGL-T + SDC Auto-Dispatch, S36 신규)
   - PostToolUse Write|Edit: changelog + memory_bridge
   - PostToolUse Bash: tool_failure_hook
-  - PostToolUse '': compliance_tracker (Phase 3)
+  - PostToolUse '': compliance_tracker
   - Stop: retrospective_hook
 
-상태: 종일군 지시 대기 (push / needs_review / Wave 2 / 타 에이전트 확장 / Phase 3 관찰 통계)
+SDC Gate 상태:
+  - active_guards.json.sdc_brief_submitted = false (runtime state, 매 세션 리셋)
+  - 다음 Bash(git commit/push/merge/...) 호출 시 <sdc-gate-alert> 자동 주입 예상
+  - 노이즈 억제 위해 SDC-Helper(sdc_commit.py) 우선 구현 필요 (P0)
+
+상태: 종일군 지시 대기
 ```
 
-## 이번 세션 성과 (Session 35, in progress)
-- **subagent-brief → SDC rename:** 스킬 2개(위상군/리얼군) + CLAUDE.md + 규칙 참조 + TEMS DB + wiki concept 등록.
-- **QMD 로컬 관리 정책 도입 (TCL #116):** 모든 에이전트 공통 원리. 위상군 이관 완료 (91 files → `qmd_drive/sessions/` + `qmd_drive/recaps/`). broken collection `wesanggoon-sessions` 제거.
-- **Wiki +2 pages:** `concepts/SDC.md` + `principles/Per_Agent_Local_QMD.md`.
-- **llm-wiki → TWK rename (TCL #118):** 글로벌 스킬 디렉토리 rename + SKILL.md frontmatter + 6 글로벌 파일 + 위상군 프로젝트 파일 5종 + TEMS DB #114 + FTS5 rebuild.
-- **4개 원격 레포 생성·push (TEMS/TWK/DVC/SDC):** `bobpullie/{TEMS,TWK,DVC,SDC}` 신설 (TEMS 기존). 각 repo LICENSE(MIT)/README/.gitignore + frontmatter `upstream`+`update_cmd`. TCL #119 등록.
-- **설치본 clone 변환 (pull-based 업데이트 체계):** `~/.claude/skills/TWK/` + `E:/DnT/DnT_WesangGoon/.claude/skills/dvc/` 에 `.git/` 부착(`git init + reset --hard origin/main`). 위상군 root `.gitignore` 에 `.claude/skills/dvc/` 추가 + `git rm --cached` 로 nested 경계 처리. 이후 `git -C <install> pull origin main` 한 줄로 업데이트 수신 가능.
-- **SDC Auto-Dispatch Check 도입 (TCL #120, bobpullie/SDC 121e3ee):** Hybrid trigger 모드. Auto-trigger 키워드(git commit/push, mv/cp, 배치, classify, verify, 이식) 매칭 시만 3-question gate 실행. Q1(invariance)·Q2(overhead)·Q3(reversibility-blast-radius) 판정. Q3=Shared state면 STAGING 패턴(Sonnet add만, Opus 검토 후 commit/push — TCL #86 생인). 기본값: Q1+Q2+Q3Local 통과 시 자동 DELEGATE. 세션 효율: overhead ~\$0.04-0.45, 순이득 \$0.5-1.5 예상 + context 보존.
-
-## S35 Task (우선순위)
+## S37 Task (우선순위)
 | ID | 우선순위 | 내용 |
 |----|---------|------|
-| **Push-decision** | P0 | 4 에이전트 미푸시 (위상·코드·디니·리얼) 판단 |
-| **Realgoon-tems_commit-cleanup** | P0 | 리얼군 memory/tems_commit.py 구버전 95줄 정리 (Wave 1 22KB와 공존) |
+| **SDC-Helper** | P0 | `memory/sdc_commit.py` — brief 제출 시 `active_guards.json.sdc_brief_submitted=true` 자동 세팅 |
+| **SDC-Gate-Observation** | P0 | 다음 세션 운영 중 false positive 관찰, `pull`/`fetch` trigger 포함 여부 판단 |
+| **Push-decision-other** | P1 | 코드군/디니군/리얼군 미푸시 판단 (위상군은 완료) |
 | **Phase3-Observation** | P1 | Phase 3 violation/compliance 통계 1-2주 수집 |
 | **NeedsReview-Classification** | P1 | 위상군 22건 + 코드군 14건 수동 재분류 |
 | **Wave1-Expand** | P1 | 어플군/기록군/빌드군 Wave 1 이식 |
-| **QMD-Local-Rollout** | P1 | TCL #116 타 에이전트 이관 — 리얼군/코드군/디니군/어플군/기록군/빌드군/위상군(독립). 각자 `qmd_drive/` 생성 + collection 재등록 |
-| **sync-claude-sessions-config** | P2 | 글로벌 스킬 기본 출력 경로 `Claude-Sessions/` → `qmd_drive/sessions/` 로 리다이렉트 방안 검토 (skill 수정 vs symlink vs post-hook) |
-| **TWK-Expand** | P1 | 타 에이전트 TWK(구 llm-wiki) 배포 (코드군 fermion-wiki 호환 확인 선행) |
+| **QMD-Local-Rollout** | P1 | TCL #116 타 에이전트 이관 |
+| **TWK-Expand** | P1 | 타 에이전트 TWK 배포 (코드군 fermion-wiki 호환 확인 선행) |
 | **DVC-Global-Promotion** | P2 | 위상군 dogfood 1-2세션 후 판단 |
 | **Phase3-Decay-Cron** | P2 | Windows Task Scheduler 매일 09:00 |
-| **QMD-Embed-107-114** | P2 | #107~#114 qmd embed |
-| **Phase3-P2-Tests** | P3 | 단위 테스트 3종 |
+| **QMD-Embed-115-121** | P2 | 신규 규칙 #115~#121 qmd embed |
 
 ## 대기 태스크 (타 에이전트)
 | ID | 담당 | 내용 | 우선순위 |
@@ -125,27 +131,27 @@ Hook 구성 (위상군 동일):
 | ANKR-Phase1 | 디니군 | extract_and_dump + 하드코딩 제거 | P0 |
 | Q-002 | 빌드군 | SidePanel crossfade 검증 | P0 |
 | KH-Phase2 | 위상군 | Phase 2 brainstorming | P1 |
-| ~~Atlas-피드백~~ | — | **Atlas 비활성화로 무효 (S34)** | 종료 |
 
 ## 최근 핵심 결정
 | 결정 | 근거 | 날짜 |
 |------|------|------|
+| **SDC Gate Phase 3 편입** | S36 세션 중 발생한 본체 SDC 위반 → 자동 강제 필요. warning only, 200:1 효율 | 4/20 S36 |
+| **TWK frontmatter Dataview+Calendar 호환** | 플러그인 스펙 조사 + 6/6 템플릿 정규화 | 4/20 S36 |
 | **Wave 1 전 에이전트 표준 승격** | 코드군 8세션 검증 + 코드 무수정 확인 | 4/20 S34 |
 | **Phase 3 위상군 단독 관찰** | S32 신규, 1-2주 통계 후 Wave 2 판정 | 4/20 S34 |
 | **Atlas 비활성화** | 종일군 불필요 선언 | 4/20 S34 |
-| **SDC(Subagent Delegation Contract) 스킬 도입 (Opus/Sonnet 분업)** | 깊은 추론 없는 실행을 Sonnet 위임으로. 초기 이름 subagent-brief, S35에서 SDC로 rename (3-letter 약어 통일·이름 충돌 방지·수학적 계약 구조 반영) | 4/20 S34~S35 |
-| **TWK (TriadWiKi) 글로벌 스킬 채택 (구 llm-wiki, S35 rename)** | Karpathy 3-Layer 범용화, 리얼·코드군 양립 | 4/20 S34~S35 |
+| **SDC(Subagent Delegation Contract)** | 깊은 추론 없는 실행을 Sonnet 위임으로 | 4/20 S34~S35 |
+| **TWK (TriadWiKi)** | Karpathy 3-Layer 범용화, 리얼·코드군 양립 | 4/20 S34~S35 |
 | **DVC ≠ TEMS TCL 용어 분리** | S33 혼동 사고 기반 wiki 정식화 | 4/20 S34 |
-| **DVC skill 채택 + dogfood** | 종일군 확정 | 4/20 S33 |
 
 ## 팀 현황
-| 에이전트 | 위치 | TEMS | SDC | TWK(llm-wiki) | 현재 태스크 |
-|---------|------|------|----------------|----------|------------|
-| 위상군 (DnT) | E:\DnT\DnT_WesangGoon | Wave 1 + Phase 3 | ✓ S34 | ✓ S34 (11 pages) | 대기 |
-| 위상군 (독립) | E:\WesangGoon | 신규 구축 완료 | — | — | 대기 |
-| 코드군 | E:\QuantProject\DnT_Fermion | Wave 1 (52f8dff) | ✓ 원조 | 자체 fermion-wiki | needs_review 14건 |
-| 디니군 | E:\01_houdiniAgent | Wave 1 (S34) | — | — | ANKR Phase 1 |
-| 리얼군 | E:\00_unrealAgent | Wave 1 (S34, migration) | ✓ S34 | — | TEMS cleanup 대기 |
-| 어플군 | E:\ChildSchedule | 구버전 (tems_core) | — | — | Wave 1 이식 대기 |
-| 기록군 | E:\KnowledgeHub | 구버전 | — | — | L2 키워드 보강 대기 |
-| 빌드군 | E:\DnT\MRV_DnT | 구버전 | — | — | 대기 (Q-002) |
+| 에이전트 | 위치 | TEMS | SDC | SDC Gate | TWK | 현재 태스크 |
+|---------|------|------|-----|----------|-----|------------|
+| 위상군 (DnT) | E:\DnT\DnT_WesangGoon | Wave 1 + Phase 3 | ✓ S34 | ✓ S36 | ✓ S36 호환화 | 대기 |
+| 위상군 (독립) | E:\WesangGoon | 신규 구축 완료 | — | — | — | 대기 |
+| 코드군 | E:\QuantProject\DnT_Fermion | Wave 1 (52f8dff) | ✓ 원조 | — | 자체 fermion-wiki | needs_review 14건 |
+| 디니군 | E:\01_houdiniAgent | Wave 1 (S34) | — | — | — | ANKR Phase 1 |
+| 리얼군 | E:\00_unrealAgent | Wave 1 (S34, migration) | ✓ S34 | — | — | TEMS cleanup 대기 |
+| 어플군 | E:\ChildSchedule | 구버전 (tems_core) | — | — | — | Wave 1 이식 대기 |
+| 기록군 | E:\KnowledgeHub | 구버전 | — | — | — | L2 키워드 보강 대기 |
+| 빌드군 | E:\DnT\MRV_DnT | 구버전 | — | — | — | 대기 (Q-002) |
