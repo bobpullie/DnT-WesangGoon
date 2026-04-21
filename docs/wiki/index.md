@@ -1,6 +1,6 @@
 # wesang Wiki — Index
 
-> 마지막 갱신: 2026-04-21 (S37 — handover 독립 스킬 packaging decision)
+> 마지막 갱신: 2026-04-21 (S38 — SDC 선택적 발동 decision)
 
 ```dataview
 TABLE date, status, scope
@@ -15,6 +15,7 @@ LIMIT 20
 
 ## Decisions
 
+- [[decisions/2026-04-21_sdc-selective-dispatch]] — SDC §0 을 규칙기반(기본) / 자동트리거(확장) 모드로 분리 (Implemented, S38)
 - [[decisions/2026-04-21_handover-skill-packaging]] — 핸드오버 시스템 독립 스킬(`bobpullie/handover`) 패키징 결정 (Implemented, S37)
 - [[decisions/2026-04-20_wave1-standardization]] — TEMS Wave 1 (Phase 0-2) 전 에이전트 표준 승격 (Accepted)
 - [[decisions/2026-04-20_tems-phase3-deployment]] — Phase 3 (tool_gate + compliance_tracker) 위상군 단독 관찰 유보 (Observation)

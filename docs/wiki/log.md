@@ -2,6 +2,15 @@
 
 > append-only. 삭제 금지. 최신이 위.
 
+## 2026-04-21 — [Session Close] S38 종료
+- [Ingest] decisions/2026-04-21_sdc-selective-dispatch (Implemented, S38) — SDC §0 규칙기반/자동트리거 모드 분리 / 커밋 `4d31cf5`
+- L2 추출: `docs/session_archive/20260421_session2_raw.md` (Q=9, A=34)
+- TCL #122 신규 — git 배포 전용 sdc_trigger (선별적 SDC 활성화 출발점)
+- 글로벌 ~/.claude 최적화: CLAUDE.md 52→7줄 (86% 감축), artkoon 스크립트 2개 삭제
+- 위상군 wiki 페이지: 17 → 18 (+decision)
+- 다음 lint 주기: S41 (5세션 후) 또는 20 페이지 시점 (S36 지정 유지)
+- 핸드오버: [[../../handover_doc/2026-04-21_session38]]
+
 ## 2026-04-21 — [Session Close] S37 종료
 - [Ingest] decisions/2026-04-21_handover-skill-packaging (Implemented) — bobpullie/handover 독립 스킬 패키징 결정
 - L2 추출: `docs/session_archive/20260421_session1_raw.md` (Q=17, A=29)
