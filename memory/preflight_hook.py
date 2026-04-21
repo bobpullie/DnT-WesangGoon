@@ -288,6 +288,42 @@ def rank_by_ths(hits: list[dict], ths_map: dict[int, tuple[float, str]]) -> list
     return scored
 
 
+def _has_sdc_trigger_tag(hit: dict) -> bool:
+    """Hit의 context_tags에 sdc_trigger 태그가 포함됐는지 확인.
+
+    SDC 선택적 발동(TCL #120 확장, 2026-04-21 S38) — tags에 sdc_trigger가
+    포함된 TCL이 매칭됐을 때만 SDC 3-question gate 수행.
+    """
+    return "sdc_trigger" in str(hit.get("context_tags", ""))
+
+
+def detect_sdc_mode() -> str:
+    """SDC 모드 감지. 활성 TCL 중 sdc_auto_trigger_enabled 태그 보유 규칙이 있으면
+    'rule+auto', 없으면 'rule-based' (기본).
+
+    SDC.md §0 선택적 발동 체계 — 2026-04-21 S38 도입.
+    """
+    import sqlite3
+    db_path = MEMORY_DIR / "error_logs.db"
+    if not db_path.exists():
+        return "rule-based"
+    try:
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute(
+            """
+            SELECT m.id FROM memory_logs m
+            LEFT JOIN rule_health rh ON rh.rule_id = m.id
+            WHERE m.context_tags LIKE '%sdc_auto_trigger_enabled%'
+              AND (rh.status IS NULL OR rh.status != 'archive')
+            LIMIT 1
+            """
+        ).fetchone()
+        conn.close()
+        return "rule+auto" if row else "rule-based"
+    except Exception:
+        return "rule-based"
+
+
 def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, list[int]]:
     """preflight 결과를 위상군 컨텍스트 주입용 텍스트로 포맷.
 
@@ -317,7 +353,8 @@ def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, lis
         for r in tcl_hits:
             text = r.get("summary") or r.get("correction_rule", "") if compact else r.get("correction_rule", "")
             rid = r.get('id', '?')
-            lines.append(f"  #{rid}: {text}")
+            sdc_mark = " [SDC]" if _has_sdc_trigger_tag(r) else ""
+            lines.append(f"  #{rid}{sdc_mark}: {text}")
             if isinstance(rid, int):
                 fired_ids.append(rid)
 
@@ -551,6 +588,11 @@ def main():
             print(output)
             # Phase 2A: 실제로 주입된 규칙의 fire_count 갱신 (cap 후 ID만)
             record_fire(fired_ids)
+
+        # SDC 모드 신호 — 확장 모드(rule+auto)일 때만 출력. 기본(rule-based)은 침묵.
+        # 확장 모드 활성화: sdc_auto_trigger_enabled 태그 TCL 1건 등록 (SDC.md §0 참조).
+        if detect_sdc_mode() == "rule+auto":
+            print("<sdc-mode>rule+auto</sdc-mode>")
 
     except Exception as e:
         # Phase 0 T1.1: silent fail 금지. 구조화 로깅 + degraded 신호 출력

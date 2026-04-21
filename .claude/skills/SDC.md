@@ -12,13 +12,56 @@ description: Subagent Delegation Contract — 위상군(Opus 4.7)이 TEMS 모듈
 
 **모델 배치 원칙**: 판단·추론·Audit 서브에이전트는 **Opus 4.7**, 실행·구현·테스트·탐색 서브에이전트는 **Sonnet 4.6**. code-reviewer / advisor 는 예외 없이 Opus 전담. 혼용 금지.
 
-## 0. Auto-Dispatch Check (task 수신 즉시 실행 — Hybrid Trigger 모드)
+## 0. Auto-Dispatch Check (선택적 발동 — 규칙기반 기본 / 자동트리거 확장)
 
-새 task 수신 시 아래 절차를 **자동 실행**. Trigger 키워드 매칭 시에만 명시적 판정, 그 외에는 판정 생략 (Opus 본체 직접 처리, 내재화된 기본).
+**S38 개정 (2026-04-21):** 매 prompt 무차별 키워드 탐색은 deprecated. 발동 조건은 TCL 등록으로 제어.
 
-### Auto-Trigger 키워드
+### 모드 구조
 
-아래 패턴이 task에 포함되면 3-question gate 자동 실행:
+| 모드 | 발동 신호 | 활성화 방법 |
+|------|----------|------------|
+| **규칙기반 (기본)** | `<preflight-memory-check>` 내 `[SDC]` 마커 TCL 주입 | TCL을 `--tags "sdc_trigger"` 로 등록 |
+| **규칙기반 + 자동트리거 (확장)** | 위 + `<sdc-mode>rule+auto</sdc-mode>` 태그 관측 시 아래 Auto-Trigger 키워드도 자의 탐색 | `sdc_auto_trigger_enabled` 태그 TCL 1건 등록 |
+
+### 발동 판정 로직
+
+**Step 1 — 항상 수행:**
+- `<preflight-memory-check>` 안에 `[SDC]` 마커가 붙은 TCL이 있으면 → 3-Question Gate 수행. 규칙 본문이 현재 task 범위를 정의함 (예: "앞으로 git 커밋/배포는 SDC 활용").
+- `[SDC]` 마커 없으면 → 이 Step은 통과, Step 2로.
+
+**Step 2 — 모드 분기:**
+- `<sdc-mode>rule+auto</sdc-mode>` 신호 **있음** → 아래 Auto-Trigger 키워드를 task 본문에서 자의 매칭 → 매칭 시 3-Question Gate.
+- `<sdc-mode>` 없음 (기본 = rule-based) → §0 완전 생략. LLM 본체 직접 처리.
+
+**매 prompt 키워드를 자의적으로 탐색하지 말 것** — 자동트리거 모드 신호가 없으면 §0 전체를 스킵.
+
+### 사용자 등록 예시
+
+```bash
+# 기본 trigger TCL (rule-based 모드에서 선택적 SDC 활성화)
+python memory/tems_commit.py --type TCL \
+  --rule "앞으로 git commit/push/merge 등 배포 명령은 SDC 3-question gate 활용" \
+  --triggers "git, commit, push, merge, deploy, 배포, 푸시" \
+  --tags "sdc_trigger"
+
+python memory/tems_commit.py --type TCL \
+  --rule "앞으로 코드 구현/리팩터링 작업은 SDC 활용" \
+  --triggers "구현, refactor, 리팩터, 이식, migrate" \
+  --tags "sdc_trigger"
+
+# 확장 모드 (rule+auto) 활성 토글 — 아래 키워드 자동탐색 켜짐
+python memory/tems_commit.py --type TCL \
+  --rule "SDC 자동트리거 모드 활성. §0 Auto-Trigger 키워드 자동 탐색 수행" \
+  --triggers "sdc, mode, 자동트리거" \
+  --tags "sdc_auto_trigger_enabled"
+
+# 확장 모드 해제: 위 TCL을 archive 처리
+# python memory/tems_commit.py --archive <rule_id>
+```
+
+### Auto-Trigger 키워드 (확장 모드 전용)
+
+아래 패턴은 `<sdc-mode>rule+auto</sdc-mode>` 신호가 관측됐을 때만 task 본문에서 탐색:
 
 - Git 명령: `commit` · `push` · `pull` · `merge` · `rebase` · `cherry-pick` · `fetch`
 - 파일 조작: `mv` · `cp` · `rename` · `refactor` · `migrate`
@@ -27,7 +70,9 @@ description: Subagent Delegation Contract — 위상군(Opus 4.7)이 TEMS 모듈
 - 검증: `verify` · `test` · `validate` · `smoke`
 - 이식/배포: `Wave` · `이식` · `배포` · `port`
 
-Trigger 없으면 → 게이트 생략, 본체 직접 판단 (일반 대화·설계 질문 등).
+### Hook-level 강제 (모드와 독립)
+
+[memory/tool_gate_hook.py](../../memory/tool_gate_hook.py) 의 SDC gate는 **git commit/push/merge/rebase/cherry-pick/revert** 실행 직전 brief 제출 여부를 항상 검사 (모드 무관). SDC §0 모드 토글과 독립적으로 작동 — hook 레벨 강제는 TCL #120 original.
 
 ### 3-Question Gate
 
@@ -69,7 +114,7 @@ Trigger 없으면 → 게이트 생략, 본체 직접 판단 (일반 대화·설
 
 - **Q1 PASS + Q2 PASS + Q3 Local** → **자동 DELEGATE** (매번 "위임할까?" 묻지 말 것)
 - **KEEP 판정은 근거 1줄 명시** (Q1 fail 이유 or Q2 overhead 압도)
-- Trigger 없는 일반 대화/판단 요청은 게이트 자체를 생략
+- 규칙기반 모드에서 `[SDC]` 마커 TCL 없거나, 확장 모드에서 키워드 매칭 없으면 게이트 자체를 생략
 
 ### 비용 고려 (세션 효율)
 
