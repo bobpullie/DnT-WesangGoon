@@ -1,5 +1,9 @@
 import pytest
-from scripts.normalize_session_frontmatter import parse_frontmatter, serialize_frontmatter
+from scripts.normalize_session_frontmatter import (
+    extract_date_from_filename,
+    parse_frontmatter,
+    serialize_frontmatter,
+)
 
 
 def test_parse_frontmatter_empty_content():
@@ -49,3 +53,22 @@ def test_parse_serialize_roundtrip():
     parsed_meta, parsed_body = parse_frontmatter(serialized)
     assert parsed_meta == original_meta
     assert parsed_body == "# body\n"
+
+
+def test_extract_date_yyyymmdd_format():
+    """docs/session_archive/20260420_session1_raw.md → 2026-04-20"""
+    assert extract_date_from_filename("20260420_session1_raw.md") == "2026-04-20"
+
+
+def test_extract_date_dashed_format():
+    """handover_doc/2026-04-21_session40.md → 2026-04-21"""
+    assert extract_date_from_filename("2026-04-21_session40.md") == "2026-04-21"
+
+
+def test_extract_date_no_date_returns_none():
+    assert extract_date_from_filename("irregular_name.md") is None
+
+
+def test_extract_date_ignores_year_in_middle():
+    """파일명 중간의 숫자열이 년도로 오인되면 안 됨."""
+    assert extract_date_from_filename("foo_123456_bar.md") is None

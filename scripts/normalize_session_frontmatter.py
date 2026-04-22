@@ -17,6 +17,25 @@ FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 
 FLOW_STYLE_KEYS = {"tags", "aliases"}
 
+# 파일명 맨 앞에서만 매칭 (중간 숫자 오인 방지)
+DATE_PATTERNS = [
+    re.compile(r"^(\d{4})-(\d{2})-(\d{2})"),   # 2026-04-21
+    re.compile(r"^(\d{4})(\d{2})(\d{2})"),     # 20260420
+]
+
+
+def extract_date_from_filename(name: str) -> str | None:
+    """파일명 맨 앞에서 YYYY-MM-DD 또는 YYYYMMDD 를 추출.
+
+    성공 시 'YYYY-MM-DD' 문자열, 실패 시 None.
+    """
+    for pat in DATE_PATTERNS:
+        m = pat.match(name)
+        if m:
+            y, mo, d = m.group(1), m.group(2), m.group(3)
+            return f"{y}-{mo}-{d}"
+    return None
+
 
 def parse_frontmatter(content: str) -> tuple[dict, str]:
     """markdown 문자열을 (frontmatter dict, body) 로 분리.
