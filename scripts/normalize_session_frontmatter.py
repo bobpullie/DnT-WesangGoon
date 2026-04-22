@@ -28,6 +28,53 @@ DATE_PATTERNS = [
 
 SESSION_PATTERN = re.compile(r"[_-]s(?:ession)?(\d+)", re.IGNORECASE)
 
+FOLDER_CONFIG = {
+    "docs/session_archive": {
+        "type": "raw",
+        "cssclass": "twk-raw",
+        "tags": ["session", "raw", "L2"],
+    },
+    "handover_doc": {
+        "type": "handover",
+        "cssclass": "twk-handover",
+        "tags": ["session", "handover"],
+    },
+    "qmd_drive/recaps": {
+        "type": "recap",
+        "cssclass": "twk-recap",
+        "tags": ["session", "recap"],
+    },
+}
+
+
+def build_template(folder_key: str, filename: str, path: Path | None) -> dict:
+    """폴더 config + 파일명 파싱 결과로 template dict 구성.
+
+    Args:
+        folder_key: FOLDER_CONFIG 의 키 (e.g. "handover_doc")
+        filename: 파일 이름 (basename)
+        path: mtime fallback 용 Path (없으면 mtime fallback 불가 — date 생략)
+
+    Raises:
+        KeyError: folder_key 가 FOLDER_CONFIG 에 없을 때
+    """
+    if folder_key not in FOLDER_CONFIG:
+        raise KeyError(f"unknown folder: {folder_key}")
+    base = FOLDER_CONFIG[folder_key]
+    tpl: dict = {}
+    date = extract_date_from_filename(filename)
+    if date is None and path is not None:
+        date = mtime_date(path)
+    if date is not None:
+        tpl["date"] = date
+    tpl["type"] = base["type"]
+    tpl["cssclass"] = base["cssclass"]
+    tpl["tags"] = list(base["tags"])
+    session = extract_session_from_filename(filename)
+    if session:
+        tpl["session"] = session
+    return tpl
+
 
 def mtime_date(path: Path) -> str:
     """파일 mtime 의 날짜 부분을 YYYY-MM-DD 로 반환."""

@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 from scripts.normalize_session_frontmatter import (
+    FOLDER_CONFIG,
+    build_template,
     extract_date_from_filename,
     extract_session_from_filename,
     merge_frontmatter,
@@ -159,3 +161,45 @@ def test_merge_mixed_scalar_and_array():
         "tags": ["custom", "session", "recap"],
     }
     assert changed is True
+
+
+def test_build_template_session_archive():
+    tpl = build_template("docs/session_archive", "20260420_session1_raw.md", None)
+    assert tpl["date"] == "2026-04-20"
+    assert tpl["type"] == "raw"
+    assert tpl["cssclass"] == "twk-raw"
+    assert tpl["session"] == "S1"
+    assert set(tpl["tags"]) == {"session", "raw", "L2"}
+
+
+def test_build_template_handover():
+    tpl = build_template("handover_doc", "2026-04-21_session40.md", None)
+    assert tpl["date"] == "2026-04-21"
+    assert tpl["type"] == "handover"
+    assert tpl["cssclass"] == "twk-handover"
+    assert tpl["session"] == "S40"
+    assert set(tpl["tags"]) == {"session", "handover"}
+
+
+def test_build_template_recap():
+    tpl = build_template("qmd_drive/recaps", "2026-04-22_session41.md", None)
+    assert tpl["type"] == "recap"
+    assert tpl["cssclass"] == "twk-recap"
+    assert tpl["session"] == "S41"
+
+
+def test_build_template_filename_parse_fails_uses_mtime(tmp_path: Path):
+    """파일명 파싱 실패 시 date 는 mtime fallback, session 은 생략."""
+    p = tmp_path / "irregular_name.md"
+    p.write_text("x", encoding="utf-8")
+    fixed = time.mktime(time.strptime("2026-01-15", "%Y-%m-%d"))
+    os.utime(p, (fixed, fixed))
+    tpl = build_template("handover_doc", "irregular_name.md", p)
+    assert tpl["date"] == "2026-01-15"
+    assert "session" not in tpl
+    assert tpl["type"] == "handover"
+
+
+def test_build_template_unknown_folder_raises():
+    with pytest.raises(KeyError):
+        build_template("unknown/folder", "foo.md", None)
