@@ -24,6 +24,14 @@ alwaysApply: true
    python ~/.claude/skills/TWK/scripts/extract_session_raw.py --config ./wiki.config.json
    ```
    출력: `docs/session_archive/YYYYMMDD_sessionN_raw.md` (기계적 Q&A, 0 토큰)
+5.5. **세션 산출물 frontmatter 정규화 (S41~):**
+   ```bash
+   python scripts/normalize_session_frontmatter.py --apply
+   ```
+   - L2 raw · handover · recap 의 frontmatter 누락 필드 자동 보충 (`date` · `type` · `cssclass` · `tags` · `session`)
+   - idempotent — 이미 처리된 파일은 skip
+   - `docs/wiki/**` 는 **검증만** (필수 필드 `date`·`status` 체크)
+   - 출력은 Dataview 기반 [[../../docs/session_artifacts]] 인덱스로 즉시 반영
 6. **LLM Wiki L3 Curation:** 이번 세션에 새 **결정/위상 패턴/개념/원리**가 있었나?
    - YES → `docs/wiki/<section>/` 에 템플릿(`~/.claude/skills/TWK/templates/page-templates/`) 복사해 작성
      - `[[../../session_archive/YYYYMMDD_sN_raw]]` 로 L2 wikilink + `index.md` 등록 + `log.md` append
