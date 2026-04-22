@@ -11,6 +11,7 @@ from scripts.normalize_session_frontmatter import (
     merge_frontmatter,
     mtime_date,
     parse_frontmatter,
+    process_file,
     serialize_frontmatter,
 )
 
@@ -203,3 +204,51 @@ def test_build_template_filename_parse_fails_uses_mtime(tmp_path: Path):
 def test_build_template_unknown_folder_raises():
     with pytest.raises(KeyError):
         build_template("unknown/folder", "foo.md", None)
+
+
+def test_process_file_injects_into_missing_frontmatter(tmp_path: Path):
+    p = tmp_path / "2026-04-21_session40.md"
+    p.write_text("# 제목\n본문\n", encoding="utf-8")
+    action = process_file(p, "handover_doc", dry_run=False)
+    assert action in {"added", "updated"}
+    content = p.read_text(encoding="utf-8")
+    assert content.startswith("---\n")
+    assert "date: 2026-04-21" in content
+    assert "type: handover" in content
+    assert "# 제목" in content  # 본문 보존
+
+
+def test_process_file_preserves_existing_scalar(tmp_path: Path):
+    p = tmp_path / "2026-04-21_session40.md"
+    p.write_text("---\ndate: 2026-04-01\n---\n# 제목\n", encoding="utf-8")
+    process_file(p, "handover_doc", dry_run=False)
+    content = p.read_text(encoding="utf-8")
+    assert "date: 2026-04-01" in content  # 기존 값 보존
+    assert "date: 2026-04-21" not in content
+
+
+def test_process_file_idempotent(tmp_path: Path):
+    """2회 apply 결과 동일."""
+    p = tmp_path / "2026-04-21_session40.md"
+    p.write_text("# 제목\n", encoding="utf-8")
+    process_file(p, "handover_doc", dry_run=False)
+    first = p.read_text(encoding="utf-8")
+    process_file(p, "handover_doc", dry_run=False)
+    second = p.read_text(encoding="utf-8")
+    assert first == second
+
+
+def test_process_file_dry_run_no_write(tmp_path: Path):
+    p = tmp_path / "2026-04-21_session40.md"
+    original = "# 제목\n"
+    p.write_text(original, encoding="utf-8")
+    process_file(p, "handover_doc", dry_run=True)
+    assert p.read_text(encoding="utf-8") == original
+
+
+def test_process_file_tags_union(tmp_path: Path):
+    p = tmp_path / "2026-04-21_session40.md"
+    p.write_text("---\ntags: [custom]\n---\n", encoding="utf-8")
+    process_file(p, "handover_doc", dry_run=False)
+    content = p.read_text(encoding="utf-8")
+    assert "tags: [custom, session, handover]" in content

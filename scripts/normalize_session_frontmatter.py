@@ -152,6 +152,27 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
     return meta, body
 
 
+def process_file(path: Path, folder_key: str, dry_run: bool) -> str:
+    """단일 파일에 frontmatter 병합 적용.
+
+    Returns:
+        "kept" | "updated" | "added" | "dry-run"
+    """
+    content = path.read_text(encoding="utf-8")
+    existing_meta, body = parse_frontmatter(content)
+    template = build_template(folder_key, path.name, path)
+    merged_meta, changed = merge_frontmatter(existing_meta, template)
+
+    if not changed:
+        return "kept"
+    if dry_run:
+        return "dry-run"
+
+    new_content = serialize_frontmatter(merged_meta, body)
+    path.write_text(new_content, encoding="utf-8")
+    return "added" if not existing_meta else "updated"
+
+
 def serialize_frontmatter(meta: dict, body: str) -> str:
     """(meta, body) 를 markdown 문자열로 합성.
 
