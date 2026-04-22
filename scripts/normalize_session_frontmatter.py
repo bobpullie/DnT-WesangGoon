@@ -226,3 +226,90 @@ def serialize_frontmatter(meta: dict, body: str) -> str:
     if body and not body.startswith("\n"):
         fm += "\n"
     return fm + body
+
+
+import argparse
+import sys
+
+# 폴더 키 → 실제 디렉토리 경로 매핑 (상대 경로, project root 기준)
+FOLDER_PATHS = {
+    "docs/session_archive": "docs/session_archive",
+    "handover_doc": "handover_doc",
+    "qmd_drive/recaps": "qmd_drive/recaps",
+}
+
+WIKI_ROOT = "docs/wiki"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--dry-run", action="store_true", help="실제 쓰기 없이 동작 확인")
+    ap.add_argument("--apply", action="store_true", help="실제 적용")
+    ap.add_argument(
+        "--only",
+        choices=list(FOLDER_PATHS.keys()) + ["wiki"],
+        help="특정 폴더만 처리",
+    )
+    ap.add_argument("--project-root", default=".", help="프로젝트 루트 (기본: .)")
+    args = ap.parse_args()
+
+    if not args.dry_run and not args.apply:
+        print("[error] --dry-run 또는 --apply 중 하나 필수", file=sys.stderr)
+        return 2
+
+    root = Path(args.project_root).resolve()
+
+    # 처리 대상 결정
+    if args.only == "wiki":
+        return _run_wiki_validate(root)
+    if args.only:
+        folder_keys = [args.only]
+    else:
+        folder_keys = list(FOLDER_PATHS.keys())
+
+    total_counts = {"added": 0, "updated": 0, "kept": 0, "dry-run": 0}
+    for key in folder_keys:
+        folder = root / FOLDER_PATHS[key]
+        if not folder.exists():
+            print(f"[warn] 폴더 없음: {folder}", file=sys.stderr)
+            continue
+        print(f"\n[{key}] scanning {folder} ...")
+        for md in sorted(folder.rglob("*.md")):
+            action = process_file(md, key, args.dry_run)
+            rel = md.relative_to(root)
+            print(f"  [{action:<8}] {rel}")
+            total_counts[action] = total_counts.get(action, 0) + 1
+
+    # wiki 검증 (--only 지정 안 했을 때만)
+    if args.only is None:
+        _run_wiki_validate(root)
+
+    print(f"\n[summary] {total_counts}")
+    return 0
+
+
+def _run_wiki_validate(root: Path) -> int:
+    wiki_dir = root / WIKI_ROOT
+    if not wiki_dir.exists():
+        print(f"[warn] wiki 폴더 없음: {wiki_dir}", file=sys.stderr)
+        return 0
+    print(f"\n[wiki validate] scanning {wiki_dir} ...")
+    all_warnings = []
+    for md in sorted(wiki_dir.rglob("*.md")):
+        if md.name in {"log.md"}:
+            continue
+        warnings = validate_wiki_file(md)
+        all_warnings.extend(warnings)
+    if all_warnings:
+        for w in all_warnings:
+            print(f"  [warn] {w}", file=sys.stderr)
+    else:
+        print("  (이상 없음)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
