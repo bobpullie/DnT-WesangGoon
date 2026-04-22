@@ -1,0 +1,243 @@
+/* =============================================================
+   위상군 (Wesanggoon) TWK Wiki — Visual Snippet
+   Topology-group tone: cool · mathematical · subtle category tints.
+   Apply via `cssclass: twk-{category}` in page frontmatter.
+   Maintained by: scripts/tag_wiki_cssclass.py
+   ============================================================= */
+
+/* =============================================================
+   [0] Universal table readability  —  전체 vault 적용
+   - 한글 어절 보존 (종/일/군/판/단 세로 분절 방지)
+   - 최소 컬럼 폭 방어
+   - 표가 있는 페이지는 readable-line-width 우회
+   ============================================================= */
+
+/* 한글 단어 어절 단위 줄바꿈 — table cell 우선 */
+.markdown-rendered table,
+.markdown-rendered table th,
+.markdown-rendered table td {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+/* 1글자 폭 방지 — 최소 컬럼 너비 */
+.markdown-rendered table th,
+.markdown-rendered table td {
+  min-width: 5em;
+  padding: 0.42em 0.75em;
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+/* 표가 포함된 페이지는 readable-line-width 해제
+   — Obsidian 의 --line-width / --file-line-width CSS 변수를 직접 덮어씀
+   — max-width override 보다 훨씬 robust (내부 cascade 자연 수용) */
+.markdown-reading-view:has(table),
+.markdown-preview-view:has(table),
+.markdown-rendered:has(table),
+.markdown-source-view:has(.HyperMD-table-row),
+.markdown-source-view:has(.cm-table-widget) {
+  --line-width: min(1500px, 98%);
+  --line-width-adaptive: min(1500px, 98%);
+  --file-line-width: min(1500px, 98%);
+  --max-width: min(1500px, 98%);
+}
+
+/* 안전장치 — 일부 테마가 sizer 에 직접 max-width 지정 시 대비 */
+.markdown-reading-view:has(table) .markdown-preview-sizer,
+.markdown-preview-view:has(table) .markdown-preview-sizer,
+.markdown-source-view:has(.HyperMD-table-row) .cm-sizer,
+.markdown-source-view:has(.cm-table-widget) .cm-sizer {
+  max-width: min(1500px, 98%) !important;
+}
+
+/* Obsidian이 자동 생성하는 .table-wrapper / .el-table — 표 wrapper 제약 제거 */
+.markdown-rendered .table-wrapper,
+.markdown-rendered .el-table {
+  overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* 표 자체가 가용 공간을 채우도록 — 양옆 빈 공간 해소 */
+.markdown-rendered .el-table > table,
+.markdown-rendered table {
+  width: 100%;
+}
+
+/* =============================================================
+   [1] TWK Wiki visual tokens  —  cssclass 페이지 한정
+   ============================================================= */
+
+:root {
+  /* 위상군 neutral baseline */
+  --twk-border-soft: color-mix(in srgb, var(--background-modifier-border) 70%, transparent 30%);
+  --twk-bg-soft:     color-mix(in srgb, var(--background-primary) 93%, var(--text-normal) 7%);
+
+  /* Category accents — low-saturation, 위상군 톤 */
+  --twk-accent-index:      #0ea5e9;  /* sky-500       — 진입 */
+  --twk-accent-decision:   #10b981;  /* emerald-500   — 결정 */
+  --twk-accent-concept:    #3b82f6;  /* blue-500      — 개념 */
+  --twk-accent-pattern:    #f59e0b;  /* amber-500     — 패턴 */
+  --twk-accent-principle:  #8b5cf6;  /* violet-500    — 원리 */
+  --twk-accent-postmortem: #ef4444;  /* red-500       — 사후분석 */
+  --twk-accent-handover:   #f97316;  /* orange-500    — 핸드오버 */
+  --twk-accent-recap:      #14b8a6;  /* teal-500      — recap */
+  --twk-accent-timeline:   #a855f7;  /* purple-500    — 세션 산출물 타임라인 */
+  --twk-accent-default:    #64748b;  /* slate-500     — fallback · raw L2 */
+}
+
+/* -----------------------------------------------------------
+   Per-category accent mapping
+   ----------------------------------------------------------- */
+.twk-index      { --twk-accent: var(--twk-accent-index); }
+.twk-decision   { --twk-accent: var(--twk-accent-decision); }
+.twk-concept    { --twk-accent: var(--twk-accent-concept); }
+.twk-pattern    { --twk-accent: var(--twk-accent-pattern); }
+.twk-principle  { --twk-accent: var(--twk-accent-principle); }
+.twk-postmortem { --twk-accent: var(--twk-accent-postmortem); }
+.twk-handover   { --twk-accent: var(--twk-accent-handover); }
+.twk-recap      { --twk-accent: var(--twk-accent-recap); }
+.twk-timeline   { --twk-accent: var(--twk-accent-timeline); }
+.twk-raw        { --twk-accent: var(--twk-accent-default); }
+.twk-page       { --twk-accent: var(--twk-accent-default); }
+
+/* -----------------------------------------------------------
+   Headings — left bar accent + h2 underline
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] h1 {
+  padding-left: 0.55em;
+  border-left: 4px solid var(--twk-accent, var(--twk-accent-default));
+  margin-bottom: 0.35em;
+  letter-spacing: -0.01em;
+}
+
+.markdown-rendered[class*="twk-"] h2 {
+  border-bottom: 2px solid var(--twk-accent, var(--twk-accent-default));
+  padding-bottom: 0.18em;
+  margin-top: 1.8em;
+}
+
+.markdown-rendered[class*="twk-"] h3 {
+  position: relative;
+  padding-left: 0.7em;
+}
+.markdown-rendered[class*="twk-"] h3::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35em;
+  bottom: 0.35em;
+  width: 3px;
+  background: var(--twk-accent, var(--twk-accent-default));
+  opacity: 0.55;
+  border-radius: 2px;
+}
+
+/* -----------------------------------------------------------
+   Tables — tinted header, alt rows, hover
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] table {
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0.9em 0;
+  border: 1px solid var(--twk-border-soft);
+  border-radius: 6px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.markdown-rendered[class*="twk-"] table thead tr {
+  background: color-mix(in srgb, var(--twk-accent, var(--twk-accent-default)) 15%, var(--background-primary) 85%);
+  border-bottom: 2px solid var(--twk-accent, var(--twk-accent-default));
+}
+
+.markdown-rendered[class*="twk-"] table th {
+  padding: 0.5em 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  text-align: left;
+}
+
+.markdown-rendered[class*="twk-"] table td {
+  padding: 0.4em 0.85em;
+  border-top: 1px solid var(--twk-border-soft);
+}
+
+.markdown-rendered[class*="twk-"] table tbody tr:nth-child(even) {
+  background: var(--twk-bg-soft);
+}
+
+.markdown-rendered[class*="twk-"] table tbody tr:hover {
+  background: color-mix(in srgb, var(--twk-accent, var(--twk-accent-default)) 9%, var(--background-primary) 91%);
+}
+
+/* -----------------------------------------------------------
+   Internal wikilinks — dotted underline, accent on hover
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] a.internal-link {
+  text-decoration: none;
+  border-bottom: 1px dotted color-mix(in srgb, var(--twk-accent, var(--twk-accent-default)) 60%, transparent);
+  transition: border-bottom-color 0.15s ease, color 0.15s ease;
+}
+.markdown-rendered[class*="twk-"] a.internal-link:hover {
+  border-bottom-color: var(--twk-accent, var(--twk-accent-default));
+  color: var(--twk-accent, var(--twk-accent-default));
+}
+
+/* -----------------------------------------------------------
+   Inline code — subtle accent tint
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] :not(pre) > code {
+  background: color-mix(in srgb, var(--twk-accent, var(--twk-accent-default)) 9%, var(--background-primary) 91%);
+  border: 1px solid var(--twk-border-soft);
+  padding: 0.05em 0.38em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+
+/* -----------------------------------------------------------
+   Horizontal rule — accent gradient
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent 0%,
+    var(--twk-accent, var(--twk-accent-default)) 50%,
+    transparent 100%);
+  opacity: 0.45;
+  margin: 1.9em 0;
+}
+
+/* -----------------------------------------------------------
+   Callouts — slightly thicker accent border
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] .callout {
+  border-left-width: 4px;
+}
+
+/* -----------------------------------------------------------
+   Non-callout blockquotes
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] blockquote:not(.callout) {
+  border-left: 3px solid var(--twk-accent, var(--twk-accent-default));
+  background: var(--twk-bg-soft);
+  padding: 0.55em 1em;
+  border-radius: 0 4px 4px 0;
+  color: var(--text-muted);
+}
+
+/* -----------------------------------------------------------
+   Tag pill — category-tinted
+   ----------------------------------------------------------- */
+.markdown-rendered[class*="twk-"] a.tag {
+  background: color-mix(in srgb, var(--twk-accent, var(--twk-accent-default)) 12%, var(--background-primary) 88%);
+  border: 1px solid color-mix(in srgb, var(--twk-accent, var(--twk-accent-default)) 40%, transparent);
+  color: var(--text-normal);
+  border-radius: 10px;
+  padding: 0.05em 0.55em;
+  font-size: 0.82em;
+  text-decoration: none;
+}

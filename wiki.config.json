@@ -91,7 +91,11 @@
       "postmortem": "twk-postmortem",
       "idea": "twk-idea",
       "entity": "twk-entity",
-      "daily": "twk-daily"
+      "daily": "twk-daily",
+      "raw": "twk-raw",
+      "handover": "twk-handover",
+      "recap": "twk-recap",
+      "timeline": "twk-timeline"
     }
   },
   "naming_conventions": {
