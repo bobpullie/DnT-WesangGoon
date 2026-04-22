@@ -90,9 +90,11 @@ python scripts/normalize_session_frontmatter.py --apply --only handover_doc
 
 | 폴더 | 파일명 패턴 | `date` 추출 | `type` | `cssclass` | `tags` | `session` |
 |------|-----------|-------------|--------|------------|--------|-----------|
-| `docs/session_archive/` | `YYYYMMDD_sessionN_raw.md` | `YYYYMMDD` → `YYYY-MM-DD` | `session-raw` | `twk-session-raw` | `[session, raw, L2]` | `S{N}` |
+| `docs/session_archive/` | `YYYYMMDD_sessionN_raw.md` | `YYYYMMDD` → `YYYY-MM-DD` | `raw` | `twk-raw` | `[session, raw, L2]` | `S{N}` |
 | `handover_doc/` | `YYYY-MM-DD_sessionN.md` | 그대로 | `handover` | `twk-handover` | `[session, handover]` | `S{N}` |
 | `qmd_drive/recaps/` | `YYYY-MM-DD_sessionN.md` | 그대로 | `recap` | `twk-recap` | `[session, recap]` | `S{N}` |
+
+**네이밍 컨벤션 준수:** `type` · `cssclass` 접미사는 기존 TWK 스타일(`concept`·`decision`·`pattern`·`principle`·`postmortem`·`index`)을 따라 **단일 단어·하이픈 없음·소문자**. 신규 3종(`raw`·`handover`·`recap`)은 기존 6종과 충돌하지 않으며, `wiki.config.json` 의 `obsidian.cssclasses` 에 추가 등록 필요 (§9.1).
 
 ### 4.4 동작 규약
 
@@ -122,7 +124,7 @@ python scripts/normalize_session_frontmatter.py --apply --only handover_doc
 title: 위상군 — 세션 산출물
 date: 2026-04-22
 status: Active
-cssclass: twk-session-index
+cssclass: twk-timeline
 tags: [index, session, artifacts]
 ---
 ```
@@ -236,7 +238,11 @@ LIMIT 10
 ### 9.1 변경 파일
 
 - **신규:** `scripts/normalize_session_frontmatter.py`, `docs/session_artifacts.md`
-- **수정:** `docs/wiki/index.md` (embed 섹션 추가), `.claude/rules/session-lifecycle.md` (step 5.5 추가)
+- **수정:**
+  - `docs/wiki/index.md` — embed 섹션 추가
+  - `.claude/rules/session-lifecycle.md` — step 5.5 추가
+  - `wiki.config.json` — `obsidian.cssclasses` 에 `raw`·`handover`·`recap`·`timeline` 4종 추가
+  - `.obsidian/snippets/twk.css` — 신규 4 cssclass 에 대한 최소 스타일 (기존 6 카테고리 accent palette 따름)
 - **자동 수정 (스크립트 apply):** `docs/session_archive/**` · `handover_doc/**` · `qmd_drive/recaps/**` 의 frontmatter 누락 파일들
 
 ### 9.2 위험
