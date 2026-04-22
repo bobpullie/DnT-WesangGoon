@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import datetime
 import re
 from pathlib import Path
 
@@ -24,6 +25,12 @@ DATE_PATTERNS = [
 ]
 
 SESSION_PATTERN = re.compile(r"[_-]s(?:ession)?(\d+)", re.IGNORECASE)
+
+
+def mtime_date(path: Path) -> str:
+    """파일 mtime 의 날짜 부분을 YYYY-MM-DD 로 반환."""
+    ts = path.stat().st_mtime
+    return datetime.date.fromtimestamp(ts).strftime("%Y-%m-%d")
 
 
 def extract_date_from_filename(name: str) -> str | None:

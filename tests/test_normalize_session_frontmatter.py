@@ -1,7 +1,12 @@
+import os
+import time
+from pathlib import Path
+
 import pytest
 from scripts.normalize_session_frontmatter import (
     extract_date_from_filename,
     extract_session_from_filename,
+    mtime_date,
     parse_frontmatter,
     serialize_frontmatter,
 )
@@ -90,3 +95,13 @@ def test_extract_session_not_present():
 def test_extract_session_sN_shortform():
     """sN 형식도 허용 (혹시 미래에 사용될 경우)."""
     assert extract_session_from_filename("20260421_s3_raw.md") == "S3"
+
+
+def test_mtime_date_format(tmp_path: Path):
+    """file.mtime 을 YYYY-MM-DD 로 변환."""
+    p = tmp_path / "test.md"
+    p.write_text("x", encoding="utf-8")
+    # 특정 시각으로 mtime 고정: 2026-04-01 00:00:00
+    fixed = time.mktime(time.strptime("2026-04-01", "%Y-%m-%d"))
+    os.utime(p, (fixed, fixed))
+    assert mtime_date(p) == "2026-04-01"
