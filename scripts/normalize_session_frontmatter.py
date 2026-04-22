@@ -18,6 +18,8 @@ FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 
 FLOW_STYLE_KEYS = {"tags", "aliases"}
 
+ARRAY_KEYS = {"tags", "aliases"}
+
 # 파일명 맨 앞에서만 매칭 (중간 숫자 오인 방지)
 DATE_PATTERNS = [
     re.compile(r"^(\d{4})-(\d{2})-(\d{2})"),   # 2026-04-21
@@ -55,6 +57,37 @@ def extract_session_from_filename(name: str) -> str | None:
     if m:
         return f"S{m.group(1)}"
     return None
+
+
+def merge_frontmatter(existing: dict, template: dict) -> tuple[dict, bool]:
+    """template 값을 existing 에 병합.
+
+    규칙:
+      - 스칼라: 기존 값 있으면 skip, 없을 때만 주입
+      - 배열(tags/aliases): union 병합. 기존 순서 보존 + 누락분 append.
+
+    Returns:
+        (merged_dict, changed_flag)
+    """
+    result = dict(existing)
+    changed = False
+    for key, new_value in template.items():
+        if key in ARRAY_KEYS:
+            current = result.get(key, [])
+            if not isinstance(current, list):
+                current = [current]
+            additions = [v for v in new_value if v not in current]
+            if additions:
+                result[key] = current + additions
+                changed = True
+            elif key not in result:
+                result[key] = current
+                changed = True
+        else:
+            if key not in result:
+                result[key] = new_value
+                changed = True
+    return result, changed
 
 
 def parse_frontmatter(content: str) -> tuple[dict, str]:

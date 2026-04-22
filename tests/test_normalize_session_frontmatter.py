@@ -6,6 +6,7 @@ import pytest
 from scripts.normalize_session_frontmatter import (
     extract_date_from_filename,
     extract_session_from_filename,
+    merge_frontmatter,
     mtime_date,
     parse_frontmatter,
     serialize_frontmatter,
@@ -105,3 +106,56 @@ def test_mtime_date_format(tmp_path: Path):
     fixed = time.mktime(time.strptime("2026-04-01", "%Y-%m-%d"))
     os.utime(p, (fixed, fixed))
     assert mtime_date(p) == "2026-04-01"
+
+
+def test_merge_scalar_injects_when_missing():
+    existing = {}
+    template = {"date": "2026-04-22", "type": "recap"}
+    result, changed = merge_frontmatter(existing, template)
+    assert result == {"date": "2026-04-22", "type": "recap"}
+    assert changed is True
+
+
+def test_merge_scalar_preserves_when_present():
+    """기존 스칼라 값은 덮어쓰지 않는다."""
+    existing = {"date": "2026-04-15", "type": "recap"}
+    template = {"date": "2026-04-22", "type": "handover"}
+    result, changed = merge_frontmatter(existing, template)
+    assert result == {"date": "2026-04-15", "type": "recap"}
+    assert changed is False
+
+
+def test_merge_tags_union_append_missing():
+    existing = {"tags": ["custom"]}
+    template = {"tags": ["session", "recap"]}
+    result, changed = merge_frontmatter(existing, template)
+    assert result["tags"] == ["custom", "session", "recap"]
+    assert changed is True
+
+
+def test_merge_tags_union_no_change_when_superset():
+    existing = {"tags": ["custom", "session", "recap", "extra"]}
+    template = {"tags": ["session", "recap"]}
+    result, changed = merge_frontmatter(existing, template)
+    assert result["tags"] == ["custom", "session", "recap", "extra"]
+    assert changed is False
+
+
+def test_merge_tags_created_when_missing():
+    existing = {}
+    template = {"tags": ["session", "handover"]}
+    result, changed = merge_frontmatter(existing, template)
+    assert result["tags"] == ["session", "handover"]
+    assert changed is True
+
+
+def test_merge_mixed_scalar_and_array():
+    existing = {"date": "2026-04-15", "tags": ["custom"]}
+    template = {"date": "2026-04-22", "type": "recap", "tags": ["session", "recap"]}
+    result, changed = merge_frontmatter(existing, template)
+    assert result == {
+        "date": "2026-04-15",
+        "type": "recap",
+        "tags": ["custom", "session", "recap"],
+    }
+    assert changed is True
