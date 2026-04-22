@@ -1,14 +1,17 @@
 """세션 산출물 frontmatter 자동 정규화.
 
-3 폴더(docs/session_archive · handover_doc · qmd_drive/recaps)의 .md 파일에
-누락된 frontmatter 필드(date · type · cssclass · tags · session)를 idempotent
-하게 주입한다. docs/wiki/** 는 검증만.
+범위 C 폴더의 .md 파일에 누락된 frontmatter 필드(date · type · cssclass ·
+tags · session)를 idempotent 하게 주입한다. wiki_validate_root 는 검증만.
 
-위상군 로컬 전용 (TCL #93). 세션 종료 lifecycle step 5.5 에서 호출.
+폴더 목록·date 패턴·wiki root 는 `wiki.config.json` 의 `session_artifacts`
+섹션에서 읽는다. 섹션 부재 시 기본값(위상군 3 폴더) 사용.
+
+세션 종료 lifecycle step 5.5 에서 호출.
 """
 from __future__ import annotations
 
 import datetime
+import json
 import re
 from pathlib import Path
 
@@ -20,33 +23,48 @@ FLOW_STYLE_KEYS = {"tags", "aliases"}
 
 ARRAY_KEYS = {"tags", "aliases"}
 
-# 파일명 맨 앞에서만 매칭 (중간 숫자 오인 방지)
-DATE_PATTERNS = [
-    re.compile(r"^(\d{4})-(\d{2})-(\d{2})"),   # 2026-04-21
-    re.compile(r"^(\d{4})(\d{2})(\d{2})"),     # 20260420
-]
-
 SESSION_PATTERN = re.compile(r"[_-]s(?:ession)?(\d+)", re.IGNORECASE)
 
 WIKI_REQUIRED_FIELDS = ["date", "status"]
 
+DEFAULT_CONFIG_PATH = Path("wiki.config.json")
+
+# `wiki.config.json` 에 session_artifacts 섹션이 없을 때의 fallback.
+_DEFAULT_FOLDERS = [
+    {"path": "docs/session_archive", "type": "raw", "cssclass": "twk-raw", "tags": ["session", "raw", "L2"]},
+    {"path": "handover_doc", "type": "handover", "cssclass": "twk-handover", "tags": ["session", "handover"]},
+    {"path": "qmd_drive/recaps", "type": "recap", "cssclass": "twk-recap", "tags": ["session", "recap"]},
+]
+_DEFAULT_DATE_PATTERNS = [r"^(\d{4})-(\d{2})-(\d{2})", r"^(\d{4})(\d{2})(\d{2})"]
+_DEFAULT_WIKI_ROOT = "docs/wiki"
+
+
+def load_runtime_config(config_path: Path = DEFAULT_CONFIG_PATH) -> dict:
+    """`wiki.config.json` 의 session_artifacts 섹션을 로드 (defaults fallback)."""
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            sa = json.load(f).get("session_artifacts", {})
+    except (FileNotFoundError, json.JSONDecodeError):
+        sa = {}
+    return {
+        "folders": sa.get("folders", _DEFAULT_FOLDERS),
+        "date_patterns": sa.get("date_patterns", _DEFAULT_DATE_PATTERNS),
+        "wiki_validate_root": sa.get("wiki_validate_root", _DEFAULT_WIKI_ROOT),
+    }
+
+
+_runtime = load_runtime_config()
+
 FOLDER_CONFIG = {
-    "docs/session_archive": {
-        "type": "raw",
-        "cssclass": "twk-raw",
-        "tags": ["session", "raw", "L2"],
-    },
-    "handover_doc": {
-        "type": "handover",
-        "cssclass": "twk-handover",
-        "tags": ["session", "handover"],
-    },
-    "qmd_drive/recaps": {
-        "type": "recap",
-        "cssclass": "twk-recap",
-        "tags": ["session", "recap"],
-    },
+    f["path"]: {"type": f["type"], "cssclass": f["cssclass"], "tags": list(f["tags"])}
+    for f in _runtime["folders"]
 }
+
+DATE_PATTERNS = [re.compile(p) for p in _runtime["date_patterns"]]
+
+WIKI_ROOT = _runtime["wiki_validate_root"]
+
+FOLDER_PATHS = {key: key for key in FOLDER_CONFIG}
 
 
 def build_template(folder_key: str, filename: str, path: Path | None) -> dict:
@@ -230,15 +248,6 @@ def serialize_frontmatter(meta: dict, body: str) -> str:
 
 import argparse
 import sys
-
-# 폴더 키 → 실제 디렉토리 경로 매핑 (상대 경로, project root 기준)
-FOLDER_PATHS = {
-    "docs/session_archive": "docs/session_archive",
-    "handover_doc": "handover_doc",
-    "qmd_drive/recaps": "qmd_drive/recaps",
-}
-
-WIKI_ROOT = "docs/wiki"
 
 
 def main() -> int:
