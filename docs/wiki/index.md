@@ -25,6 +25,15 @@ tags: [wiki, index, wesanggoon]
 
 ---
 
+## 세션 산출물 (통합)
+
+> [!tip] 4폴더 통합 타임라인
+> 아래는 [[../session_artifacts]] 의 embed 입니다. 독립 열람도 가능.
+
+![[../session_artifacts]]
+
+---
+
 ## 최근 변경
 
 ```dataview
