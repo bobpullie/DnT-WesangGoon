@@ -47,3 +47,11 @@ $PROFILE
 # Plugin installs (independent git repos with their own upstream)
 # - converted to clones in S35; tracked by their own repo (bobpullie/DVC etc.)
 .claude/skills/dvc/
+
+# Scratch / working copies of other agent repos (S42: bobpullie/TEMS inspection)
+.scratch_tems_work/
+.scratch_tems_inspect/
+
+# Runtime logs (session_end_sync 등)
+logs/session_end_sync.log
+logs/*.log

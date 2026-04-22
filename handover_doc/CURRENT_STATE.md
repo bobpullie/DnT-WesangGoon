@@ -6,7 +6,7 @@ tags: [session, handover]
 ---
 
 # 위상군 — 현재 프로젝트 상태 (Rolling State)
-> 마지막 갱신: 2026-04-22 Session 41 종료
+> 마지막 갱신: 2026-04-22 Session 42 종료
 
 ## TEMS 호출 매뉴얼 (조용한 TEMS 아키텍처)
 **기본 정책:** 매 prompt 무차별 주입 금지. 키워드 강매칭(score≥0.55) 시에만 자동 발동.
@@ -32,9 +32,10 @@ python memory/sdc_commit.py --verdict {KEEP|DELEGATE|STAGING} --task "..." --rat
 
 ## 현재 마일스톤
 - **메인 프로젝트:** DnT v3 (Turn 2, M2~M4)
-- **TEMS 위상군:** Phase 0-3 + Migration + SDC Gate + SDC 선택화 + TWK + Wiki 시각 스타일 + Obsidian_as_IDE concept + **Session Artifacts Auto-Indexing (S41)** — 규칙 #1~#122
-- **TEMS 표준화:** Wave 1 (Phase 0-2) 전 에이전트 표준 승격 (S34 결정)
+- **TEMS 위상군:** Phase 0-3 + Layer 1 강화 + Migration + SDC Gate + SDC 선택화 + TWK + Wiki 시각 스타일 + Obsidian_as_IDE concept + Session Artifacts Auto-Indexing + **Package Distribution (S42)** — 규칙 #1~#122
+- **TEMS 표준화:** Wave 1 (Phase 0-2) 전 에이전트 표준 승격 (S34 결정) → **S42 기준 v0.2.1 로 Wave 2 이식 대체 권장**
 - **독립 위상군 repo:** bobpullie/wesangAgent (03d6638, 변경 없음)
+- **TEMS canonical 패키지:** **bobpullie/TEMS (S42 기준 v0.2.1, HEAD 7373fb5)** — `pip install -U git+https://github.com/bobpullie/TEMS.git` + `tems scaffold`
 
 ## SDC 트리거 모드 (S38 도입)
 - **기본:** rule-based — `sdc_trigger` 태그 TCL이 task에 매칭될 때만 `[SDC]` 마커 주입 → 3-question gate 수행
@@ -57,45 +58,52 @@ python memory/sdc_commit.py --verdict {KEEP|DELEGATE|STAGING} --task "..." --rat
 - **현재 운용:** 138 files frontmatter normalized (종일군 "잘 보임" 확인)
 - **TCL #93 override:** 종일군 결정으로 TWK 글로벌 배포 완료 (`bobpullie/TWK` HEAD `83a0e70`)
 
-## 이번 세션 성과 (Session 41, 종료)
-- **세션 산출물 자동 인덱싱 시스템 구축** — 4 폴더 통합 · 자동 frontmatter 주입 · Dataview 타임라인
-- **superpowers workflow full cycle** — brainstorming → writing-plans → subagent-driven (16 tasks) · 36 unit tests TDD · Obsidian 렌더링 확인
-- **TWK 글로벌 배포** — `bobpullie/TWK` HEAD `83a0e70` pushed. 배포 버전 smoke test 3 pass
-- **표준화 config 이관** — `wiki.config.json.session_artifacts` 섹션 · defaults fallback 패턴 · 타 에이전트 채택 가능 구조
+## 이번 세션 성과 (Session 42, 종료)
+- **TEMS Layer 1 강화 (위상군 로컬)** — preflight 포맷에 violation_count 노출 + TGL 헤더 "필수 준수" 승격 + 준수 명시 directive. 위상군 commit `3a37c2a`.
+- **memory/README.md 캐노니컬 문서 459줄 작성** — 13 섹션 (TL;DR / 개념 / 아키텍처 / 라이프사이클 / 계층 / 진화 / 등록 / 배포 / 분리 / 진단 / 이력). 위상군 commit `331e768`.
+- **bobpullie/TEMS Phase 3 포팅 + 패키지 배포 (S42 핵심 성과)** — `v0.2.0` (Phase 3 hook 템플릿 8종 + scaffold 6-hook 등록 + rule_health Phase 2→3 ALTER 마이그레이션) + `v0.2.1` (template preflight cwd fallback + case-insensitive project 태그 + `__version__` 동기화 + QMD Dense Fallback README 섹션 추가).
+- **아트군 실설치 (E:/DnT/DnT_ArtGoon)** — Phase 3 TEMS v0.2.1 live 동작 확인. 기존 3 hook (specs_scanner / artkoon_session_end_sync / changelog_hook) 자동 보존.
+- **자연어 TGL 강제력 4-계층 구조 정립 (L1/L2/L3/L4)** — 클로드군 비교 + 오버헤드 4축 분석 → Layer 1+2 실무 채택.
+- **사용자 지적 반영** — QMD Dense Fallback 코드는 있지만 README 에서 축약됐던 것 자백 + v0.2.1 섹션 복원.
 
-## 다음 세션 부트 (S42)
+## 다음 세션 부트 (S43)
 ```
 작업 디렉토리: E:\DnT\DnT_WesangGoon (주)
-HEAD (위상군): <S41 종료 commit> — S41 핸드오버 포함
+HEAD (위상군):  <S42 종료 commit> — S42 핸드오버 포함
+HEAD (bobpullie/TEMS):     7373fb5 — v0.2.1 (Phase 3 + Layer 1 + cwd fallback)
 HEAD (bobpullie/handover): aa7d56c — 변경 없음
-HEAD (bobpullie/TWK): 83a0e70 — S41 session artifacts normalize pushed
+HEAD (bobpullie/TWK):      83a0e70 — 변경 없음
 HEAD (bobpullie/wesangAgent): 03d6638 — 변경 없음
 HEAD (코드군): 52f8dff — Wave 1 TEMS, 미푸시
 HEAD (디니군): S34 이식 변경, 미커밋
 HEAD (리얼군): S34 이식 + migration 변경, 미커밋
+HEAD (아트군): TEMS v0.2.1 신규 설치 (E:/DnT/DnT_ArtGoon) — 구 `tems/` 디렉토리 보존
 
-위상군 TEMS: Phase 0-3 + Migration + SDC + SDC Gate + SDC 선택화 + TWK + Wiki 시각 스타일 + Obsidian_as_IDE + Session Artifacts Auto-Indexing. 규칙 #1~#122 (S41 TCL 신규 0).
-위상군 wiki: 19 → 20 (decisions/2026-04-22_session-artifacts-indexing).
-Session artifacts: 138 files normalized · session_artifacts.md Dataview 운용.
+위상군 TEMS: Phase 0-3 + Layer 1 + Migration + SDC + SDC Gate + SDC 선택화 + TWK + Wiki 시각 스타일 + Obsidian_as_IDE + Session Artifacts Auto-Indexing + Package Distribution.
+규칙 #1~#122 (S42 TCL 신규 0, 핸드오버 하단 "규칙 피드백" 참조).
+위상군 wiki: 20 → 22 예상 (decisions/tems-upstream-canonical + patterns/Enforcement_4_Layer).
 SDC 모드: rule-based. Trigger TCL 1건 (#122). 확장 모드 TCL 없음.
 CSS 스니펫: .obsidian/snippets/twk.css 활성 (10 카테고리).
 ```
 
-## S42 Task (우선순위)
+## S43 Task (우선순위)
 | ID | 우선순위 | 내용 |
 |----|---------|------|
-| **TWK-Deploy-Observe** | P0 | **S41 신규** — `bobpullie/TWK` `83a0e70` 배포 후 타 에이전트 채택 관찰 (TCL #93 override 사후 모니터링) |
-| **settings.json-수동정리** | P0 | ~/.claude/settings.json stale 3줄 제거 (S38→S41 이월) |
-| **SDC-Gate-Observation** | P0 | #122 실전 발동 관찰, false positive, pull/fetch 포함 여부 (S38→S41 이월) |
-| **handover-위상군-적용** | P0 | `bobpullie/handover --migrate` 로 hook 표준 교체 (S37→S41 이월) |
-| **Table-Width-Root-Cause** | P1 | el-table/table width:100% 재로드 후 실제 개선 확인 (S39→S41 이월) |
-| **TWK-css-Global-Push** | P1 | **S41 신규** — 4 cssclass (raw/handover/recap/timeline) 는 이식됐으나 CSS 승격 미결정 |
-| **TWK-init-wiki-Integration** | P2 | **S41 신규** — `init_wiki.py` 가 `session_artifacts.md.template` 자동 복사 |
-| **Obsidian-IDE-Promotion-Watch** | P2 | 3 승격 트리거 관찰 (S40→S41 이월) |
-| **Wiki-Visual-Audit** | P2 | 각 카테고리 페이지 색감 일관성·대비 체크 (S39→S41 이월) |
-| **TWK-wiki-SDC-gate** | P1 | SDC gate + 선택화 postmortem (S36→S41 이월) |
+| **TEMS-Upstream-Observe** | P0 | **S42 신규** — bobpullie/TEMS v0.2.1 배포 후 실설치 사용성 관찰 (아트군 Live + 타 에이전트 재스캐폴드 권유) |
+| **Wave2-Rollout** | P0 | **S42 신규** — 코드군/디니군/리얼군 에 `pip install -U` + `tems scaffold --force` (데이터 보존 migration) 로 Phase 3 이식 |
+| **TWK-Deploy-Observe** | P0 | bobpullie/TWK `83a0e70` 배포 후 타 에이전트 채택 관찰 (S41~S42 이월) |
+| **settings.json-수동정리** | P0 | ~/.claude/settings.json stale 3줄 제거 (S38~S42 이월) |
+| **SDC-Gate-Observation** | P0 | #122 실전 발동 관찰, false positive, pull/fetch 포함 여부 (S38~S42 이월) |
+| **handover-위상군-적용** | P0 | `bobpullie/handover --migrate` 로 hook 표준 교체 (S37~S42 이월) |
+| **Enforcement-Layer-Wiki** | P1 | **S42 신규** — `docs/wiki/patterns/Enforcement_4_Layer.md` 작성 |
+| **Table-Width-Root-Cause** | P1 | el-table/table width:100% 재로드 후 실제 개선 확인 (S39~S42 이월) |
+| **TWK-css-Global-Push** | P1 | 4 cssclass (raw/handover/recap/timeline) CSS 승격 (S41~S42 이월) |
+| **TWK-init-wiki-Integration** | P2 | `init_wiki.py` 가 `session_artifacts.md.template` 자동 복사 (S41~S42 이월) |
+| **Obsidian-IDE-Promotion-Watch** | P2 | 3 승격 트리거 관찰 (S40~S42 이월) |
+| **Wiki-Visual-Audit** | P2 | 각 카테고리 페이지 색감 일관성·대비 체크 (S39~S42 이월) |
+| **TWK-wiki-SDC-gate** | P1 | SDC gate + 선택화 postmortem (S36~S42 이월) |
 | **NeedsReview-Classification** | P1 | 위상군 22건 + 코드군 14건 재분류 |
-| **Wave1-Expand** | P1 | 어플군/기록군/빌드군 Wave 1 이식 |
+| **Wave1-Expand** | P1 | 어플군/기록군/빌드군 Wave 1 이식 (v0.2.1 로 직접 이식 대체 고려) |
 | **QMD-Embed-115-122** | P2 | 신규 규칙 #115~#122 qmd embed |
 | **Phase3-Decay-Cron** | P2 | Windows Task Scheduler 매일 09:00 |
 | **inbox.md-Hook-Design** | P3 | 양방향 파이프 완전 구현 설계 (승격 트리거 채택 시) |
@@ -106,10 +114,15 @@ CSS 스니펫: .obsidian/snippets/twk.css 활성 (10 카테고리).
 | ANKR-Phase1 | 디니군 | extract_and_dump + 하드코딩 제거 | P0 |
 | Q-002 | 빌드군 | SidePanel crossfade 검증 | P0 |
 | KH-Phase2 | 위상군 | Phase 2 brainstorming | P1 |
+| TEMS-v0.2.1-Adopt | 코드군/디니군/리얼군 | `pip install -U git+...TEMS.git` + `tems scaffold --force` — Phase 3 재스캐폴드 (데이터 보존 migration) | P1 |
+| TEMS-Adopt-아트군 추가규칙 | 아트군 | `tems_commit.py` 로 본인 영역 규칙 등록 (ComfyUI / Figma / Houdini) | P1 |
 
 ## 최근 핵심 결정
 | 결정 | 근거 | 날짜 |
 |------|------|------|
+| **bobpullie/TEMS 를 TEMS canonical upstream 으로 확정** | 기존 패키지가 Phase 2 멈춰있어 Phase 3 포팅 + Layer 1 강화 + cwd fallback defect fix → v0.2.0/v0.2.1 릴리즈. 타 에이전트는 `pip install -U + tems scaffold` 로 일괄 이식 | 4/22 S42 |
+| **TGL 강제력 4-계층 구조 (L1 자연어 / L2 deny JSON / L3 compliance / L4 DVC) 정립** | 사용자 질문 "자연어 TGL 무시 시 어떻게 강제?" → 오버헤드 4축 분석 후 Layer 1+2 실무 채택. Haiku pre-eval 은 50~150s 누적 레이턴시로 제외 | 4/22 S42 |
+| **template preflight cwd fallback + case-insensitive project 태그** | 아트군 실설치 중 `project:DnT` 태그 규칙이 Registry 없이 filter drop 되는 defect 발견 → v0.2.1 즉시 패치 | 4/22 S42 |
 | **세션 산출물 자동 인덱싱 — 4폴더 통합 · frontmatter idempotent 주입** | 위상군 세션 산출물이 흩어져 발견성 낮음. Karpathy L2/L3 층위 유지하며 통합 타임라인 제공 | 4/22 S41 |
 | **TCL #93 override — TWK 글로벌 바로 배포** | 종일군 판단. 로컬 검증(1 세션) 후 바로 전파. 관찰은 S42 이후 | 4/22 S41 |
 | **yaml BaseLoader — round-trip idempotency 보장** | ISO date string 을 datetime.date 로 자동 변환 방지 | 4/22 S41 |
@@ -127,10 +140,11 @@ CSS 스니펫: .obsidian/snippets/twk.css 활성 (10 카테고리).
 ## 팀 현황
 | 에이전트 | TEMS | SDC | SDC Gate | TWK | Wiki 시각 | Session Artifacts | handover 스킬 |
 |---------|------|-----|----------|-----|-----------|-------------------|--------------|
-| 위상군 (DnT) | Wave 1+Phase 3 | ✓ | ✓ S36 | ✓ | ✓ S39 로컬 | ✓ S41 글로벌 | 수동 (S40 마이그 예정) |
-| 코드군 | Wave 1 | ✓ 원조 | — | fermion-wiki | — | (TWK pull 후 채택 가능) | — |
-| 디니군 | Wave 1 | — | — | — | — | (TWK pull 후 채택 가능) | — |
-| 리얼군 | Wave 1 | ✓ | — | — | — | (TWK pull 후 채택 가능) | — |
+| 위상군 (DnT) | Phase 3 + Layer 1 | ✓ | ✓ S36 | ✓ | ✓ S39 로컬 | ✓ S41 글로벌 | 수동 (S40 마이그 예정) |
+| 코드군 | Wave 1 (Phase 2) | ✓ 원조 | — | fermion-wiki | — | (TWK pull 후 채택 가능) | — |
+| 디니군 | Wave 1 (Phase 2) | — | — | — | — | (TWK pull 후 채택 가능) | — |
+| 리얼군 | Wave 1 (Phase 2) | ✓ | — | — | — | (TWK pull 후 채택 가능) | — |
+| **아트군** | **TEMS v0.2.1 (Phase 3) 신규 설치 S42** | — | — | — | — | — | — |
 | 어플군 | 구버전 | — | — | — | — | — | — |
 | 기록군 | 구버전 | — | — | — | — | — | — |
 | 빌드군 | 구버전 | — | — | — | — | — | — |

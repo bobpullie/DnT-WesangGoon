@@ -2,6 +2,17 @@
 
 > append-only. 삭제 금지. 최신이 위.
 
+## 2026-04-22 — [Session Close] S42 종료
+- [Ingest] decisions/2026-04-22_tems-upstream-canonical (Implemented, S42) — bobpullie/TEMS 를 TEMS canonical upstream 으로 확정
+- [Ingest] patterns/Enforcement_4_Layer (Active, S42) — TEMS 규칙 강제력 4계층 구조 (L1 자연어 / L2 deny JSON / L3 compliance / L4 DVC)
+- [Package] **bobpullie/TEMS v0.2.0 릴리즈** — Phase 3 hook 템플릿 8종 + Layer 1 preflight 강화 + scaffold 6-hook 등록 + rule_health Phase 2→3 ALTER 마이그레이션 (commit dd82a1a, tag v0.2.0)
+- [Package] **bobpullie/TEMS v0.2.1 패치** — template preflight cwd fallback + case-insensitive project 태그 + `__version__` 동기화 + QMD Dense Fallback README 섹션 추가 (commit 7373fb5, tag v0.2.1)
+- [Deploy] **아트군 (E:/DnT/DnT_ArtGoon) TEMS v0.2.1 신규 설치** — `pip install + tems scaffold`. 기존 3 hook 보존. 구 `tems/` 디렉토리 보존 (TGL #91 준수). Live end-to-end 검증.
+- [System] 위상군 로컬 `memory/preflight_hook.py` Layer 1 강화 (commit 3a37c2a) + `memory/README.md` 캐노니컬 459줄 (commit 331e768)
+- [Defect-Fix] aet군 실설치 중 `project:DnT` 태그 규칙 drop defect 발견 → v0.2.1 즉시 패치 (detect_project_scope cwd fallback + case-insensitive filter)
+- [Confession] QMD Dense Fallback 코드는 v0.1.0 부터 존재했으나 README 축약 과정에서 누락. v0.2.1 에 "Advanced: Dense Fallback (QMD/CUDA)" 섹션 복원 (사용자 지적 반영)
+- L2 추출: `docs/session_archive/20260422_session2_raw.md` (Q=12, A=80)
+
 ## 2026-04-22 — [Session Close] S41 종료
 - [Ingest] decisions/2026-04-22_session-artifacts-indexing (Implemented, S41) — 세션 산출물 자동 인덱싱 시스템 도입
 - [System] `scripts/normalize_session_frontmatter.py` 신설 — 9 함수 · 36 unit tests · idempotent frontmatter 병합 (스칼라 skip · 배열 union)
