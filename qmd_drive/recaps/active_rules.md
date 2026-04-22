@@ -1,3 +1,10 @@
+---
+date: 2026-03-23
+type: recap
+cssclass: twk-recap
+tags: [session, recap]
+---
+
 # 위상군 활성 규칙 (TEMS)
 
 _동기화: 2026-03-23 19:36:49_

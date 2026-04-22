@@ -1,3 +1,11 @@
+---
+date: 2026-04-21
+type: raw
+cssclass: twk-raw
+tags: [session, raw, L2]
+session: S1
+---
+
 # Session 1 — 2026-04-21
 
 > Source: `973d94e0-a22b-479d-b311-69295facf763.jsonl`

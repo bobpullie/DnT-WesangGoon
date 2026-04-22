@@ -1,3 +1,10 @@
+---
+date: 2026-03-25
+type: handover
+cssclass: twk-handover
+tags: [session, handover]
+---
+
 # TPB 아키텍처 점검 보고서
 ## 현빌드 상태 + 구조적 진단 + 개선안
 

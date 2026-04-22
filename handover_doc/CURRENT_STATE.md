@@ -1,5 +1,12 @@
+---
+date: 2026-04-21
+type: handover
+cssclass: twk-handover
+tags: [session, handover]
+---
+
 # 위상군 — 현재 프로젝트 상태 (Rolling State)
-> 마지막 갱신: 2026-04-21 Session 38 종료
+> 마지막 갱신: 2026-04-21 Session 40 종료
 
 ## TEMS 호출 매뉴얼 (조용한 TEMS 아키텍처)
 **기본 정책:** 매 prompt 무차별 주입 금지. 키워드 강매칭(score≥0.55) 시에만 자동 발동.
@@ -25,7 +32,7 @@ python memory/sdc_commit.py --verdict {KEEP|DELEGATE|STAGING} --task "..." --rat
 
 ## 현재 마일스톤
 - **메인 프로젝트:** DnT v3 (Turn 2, M2~M4)
-- **TEMS 위상군:** Phase 0-3 + Migration + SDC Gate + SDC 선택화 + TWK — 규칙 #1~#122
+- **TEMS 위상군:** Phase 0-3 + Migration + SDC Gate + SDC 선택화 + TWK + Wiki 시각 스타일 + Obsidian_as_IDE concept(Draft) — 규칙 #1~#122
 - **TEMS 표준화:** Wave 1 (Phase 0-2) 전 에이전트 표준 승격 (S34 결정)
 - **독립 위상군 repo:** bobpullie/wesangAgent (03d6638, 변경 없음)
 
@@ -36,43 +43,52 @@ python memory/sdc_commit.py --verdict {KEEP|DELEGATE|STAGING} --task "..." --rat
 - **확장 모드 TCL:** 미등록 (현재 rule-based만)
 - **Hook-level git gate** (tool_gate_hook.py)는 모드 독립 강제 유지
 
-## 이번 세션 성과 (Session 38, 종료)
-- **SDC 트리거 선택화 (`4d31cf5`):**
-  - `.claude/skills/SDC.md` §0 재작성 — rule-based(기본) / rule+auto(확장) 분리. 매 prompt 키워드 탐색 deprecated.
-  - `memory/preflight_hook.py` — `detect_sdc_mode()` + `_has_sdc_trigger_tag()` + `[SDC]` 마커 + `<sdc-mode>` 출력
-  - Smoke test: 관련 prompt만 `[SDC]` 주입 확인, 무관 prompt 침묵
-- **TCL #122 등록** — git 배포(commit/push/merge/rebase/cherry-pick) 전용 sdc_trigger
-- **글로벌 ~/.claude 최적화:**
-  - `~/.claude/CLAUDE.md` 52줄 → 7줄 (86% 감축) — Advisor SDK 레퍼런스 섹션 + 설치 상태 정보 제거
-  - `~/.claude/scripts/artkoon_bootstrap.py`, `artkoon_session_end_sync.py` 삭제 (아트군 로컬 이전)
-  - `~/.claude/settings.json` stale permissions 제거는 harness self-modification 보호로 **블록** — 종일군 수동 적용 대기
+## Wiki 시각 스타일 (S39 도입 · 위상군 로컬)
+- **CSS 스니펫:** `.obsidian/snippets/twk.css` 활성 — 6 카테고리 accent palette (sky/emerald/blue/amber/violet/red/slate)
+- **cssclass 자동 태거:** `scripts/tag_wiki_cssclass.py` — 폴더 → `twk-{category}` 매핑, dry-run 지원
+- **적용 범위:** 위상군 로컬 20 wiki 페이지. TCL #93 준수로 `bobpullie/TWK` 글로벌 배포 **보류**.
+- **범용 규칙 (vault-wide):** `word-break: keep-all` (한글 어절 보존) · `min-width: 5em` (칸 붕괴 방지) · `:has(table)` 기반 line-width 해제
+- **미완 이슈:** 표 양옆 여백 일부 환경에서 미개선. `el-table`/`table` width:100% 추가본 재로드 후 확인 필요.
 
-## 다음 세션 부트 (S39)
+## 이번 세션 성과 (Session 40, 종료)
+- **Karpathy Obsidian-as-IDE 이해 정렬** — 원문 verbatim 기반 4개 질문(IDE 의미/Web Clipper/이미지 로컬 다운로드/Marp 플러그인) 답변. 종일군 "Obsidian = 프롬프트 입력 창" 오해 교정 → 단방향 기본 + 양방향 hook 변형 구분
+- **concepts/Obsidian_as_IDE.md (Draft)** — Karpathy verbatim 2건 인용, 4축 매트릭스(Viewer/Navigator/Query Engine/Ingestion), 양방향 파이프 변형 5 메커니즘, 승격 트리거 3종 사전 정의
+- **Marp 플러그인 주류 확정** — `samuele-cozzi/obsidian-marp-slides` (2026-04 WebSearch 기준)
+- **코드 변경 없음** — 이해 정렬 + L3 curation 세션
+
+## 다음 세션 부트 (S41)
 ```
 작업 디렉토리: E:\DnT\DnT_WesangGoon (주)
-HEAD (위상군): 4d31cf5 + S38 handover commit — master origin 동기화
+HEAD (위상군): 50a3fb6 — S39+S40 통합 commit 대기 (종일군 authorization)
 HEAD (bobpullie/handover): aa7d56c — 변경 없음
+HEAD (bobpullie/TWK): 변경 없음 (로컬 검증 단계)
 HEAD (코드군): 52f8dff — Wave 1 TEMS, 미푸시
 HEAD (디니군): S34 이식 변경, 미커밋
 HEAD (리얼군): S34 이식 + migration 변경, 미커밋
 
-위상군 TEMS: Phase 0-3 + Migration + SDC + SDC Gate + SDC 선택화 + TWK. 규칙 #1~#122.
-위상군 wiki: 17 페이지 (S38 추가: SDC_Selective_Dispatch)
+위상군 TEMS: Phase 0-3 + Migration + SDC + SDC Gate + SDC 선택화 + TWK + Wiki 시각 스타일 + Obsidian_as_IDE concept. 규칙 #1~#122 (S40 TCL 신규 0).
+위상군 wiki: 18 → 19 (concepts/Obsidian_as_IDE Draft 신규).
 SDC 모드: rule-based. Trigger TCL 1건 (#122). 확장 모드 TCL 없음.
+CSS 스니펫: .obsidian/snippets/twk.css 활성 (위상군 로컬).
 ```
 
-## S39 Task (우선순위)
+## S41 Task (우선순위)
 | ID | 우선순위 | 내용 |
 |----|---------|------|
-| **settings.json-수동정리** | P0 | ~/.claude/settings.json stale 3줄 제거 (self-mod 블록 회피: 종일군 직접 편집 or 한시 Bash 권한) |
-| **SDC-Gate-Observation** | P0 | #122 실전 발동 기록 관찰, false positive, pull/fetch trigger 포함 여부 |
-| **handover-위상군-적용** | P0 | `bobpullie/handover` `--migrate` 로 settings.local.json 기존 hook → 표준 교체 |
-| **Push-decision-other** | P1 | 코드군/디니군/리얼군 미푸시 판단 |
-| **TWK-wiki-SDC-gate** | P1 | SDC gate + SDC 선택화 postmortem (S36~S38 이월) |
-| **NeedsReview-Classification** | P1 | 위상군 22건 + 코드군 14건 수동 재분류 |
+| **settings.json-수동정리** | P0 | ~/.claude/settings.json stale 3줄 제거 (S38→S40 이월) |
+| **SDC-Gate-Observation** | P0 | #122 실전 발동 관찰, false positive, pull/fetch 포함 여부 (S38→S40 이월) |
+| **handover-위상군-적용** | P0 | `bobpullie/handover --migrate` 로 hook 표준 교체 (S37→S40 이월) |
+| **Table-Width-Root-Cause** | P1 | el-table/table width:100% 재로드 후 실제 개선 확인 (S39→S40 이월) |
+| **TWK-Index-Template-Parameterize** | P1 | 카테고리별 callout·description 파라미터화 (S39→S40 이월) |
+| **TWK-Global-Push-Decision** | P1 | `bobpullie/TWK` push 여부 결정 (S39→S40 이월) |
+| **Obsidian-IDE-Promotion-Watch** | P2 | **S40 신규** — 3 승격 트리거(외부 ingest/발표 수요/inbox.md hook) 관찰 |
+| **Wiki-Visual-Audit** | P2 | 각 카테고리 페이지 색감 일관성·대비 체크 (S39→S40 이월) |
+| **TWK-wiki-SDC-gate** | P1 | SDC gate + 선택화 postmortem (S36→S40 이월) |
+| **NeedsReview-Classification** | P1 | 위상군 22건 + 코드군 14건 재분류 |
 | **Wave1-Expand** | P1 | 어플군/기록군/빌드군 Wave 1 이식 |
 | **QMD-Embed-115-122** | P2 | 신규 규칙 #115~#122 qmd embed |
 | **Phase3-Decay-Cron** | P2 | Windows Task Scheduler 매일 09:00 |
+| **inbox.md-Hook-Design** | P3 | 양방향 파이프 완전 구현 설계 (승격 트리거 채택 시) |
 
 ## 대기 태스크 (타 에이전트)
 | ID | 담당 | 내용 | 우선순위 |
@@ -84,21 +100,26 @@ SDC 모드: rule-based. Trigger TCL 1건 (#122). 확장 모드 TCL 없음.
 ## 최근 핵심 결정
 | 결정 | 근거 | 날짜 |
 |------|------|------|
-| **SDC §0 매 prompt 키워드 탐색 deprecated** | selective 매칭을 TEMS preflight 메커니즘에 얹어 일관성 확보. 일반 대화 §0 진입 비용 제거 | 4/21 S38 |
+| **Obsidian = 뷰어 + 큐레이션 창 (입력 창 아님)** | Karpathy verbatim 재확인. 단방향 기본, 양방향은 hook 변형 | 4/21 S40 |
+| **Obsidian_as_IDE concept Draft 기록** | 조만간 프로젝트 승격 가능성 대비. 4축 + 승격 트리거 3종 사전 정의 | 4/21 S40 |
+| **위상군 톤 = 저채도 6-카테고리 accent** | 수학적·차분. Tailwind -500 일관 레벨로 라이트/다크 양방향 | 4/21 S39 |
+| **cssclass = 스타일 적용 단일 채널** | 자동 태거(폴더 기반)로 수동 편집 제거. 설정 = 메타데이터 원칙 | 4/21 S39 |
+| **CSS 스니펫 로컬 적용 · 글로벌 TWK 배포 보류** | TCL #93 — 위상군 검증 후 전파. 시각 안정화 전 push 금지 | 4/21 S39 |
+| **Universal table 규칙 vault-wide** | word-break/min-width 는 한글 환경 보편 이슈 — cssclass 독립 적용 | 4/21 S39 |
+| **SDC §0 매 prompt 키워드 탐색 deprecated** | selective 매칭을 TEMS preflight 메커니즘에 얹어 일관성 확보 | 4/21 S38 |
 | **모드 토글 = TCL 등록 단일 채널** | "규칙 = 행동" TEMS 원칙 align. 별도 config 파일/CLI 신설 금지 | 4/21 S38 |
 | **글로벌 CLAUDE.md 80%+ 감축** | 매 세션 주입 텍스트 최소화. advisor SDK 레퍼런스는 빌드 시에만 필요 | 4/21 S38 |
 | **bobpullie/handover 스킬 신설** | 새 에이전트마다 기존 폴더 참조 복사 → 다운로드 즉시 사용으로 전환 | 4/21 S37 |
-| **SDC-Helper CLI** | gate 해제를 JSON 직접 편집이 아닌 선언적 CLI로 | 4/21 S37 |
 | **SDC Gate Phase 3 편입** | S36 세션 중 SDC 위반 → 자동 강제 필요 | 4/20 S36 |
 | **Wave 1 전 에이전트 표준 승격** | 코드군 8세션 검증 + 코드 무수정 확인 | 4/20 S34 |
 
 ## 팀 현황
-| 에이전트 | TEMS | SDC | SDC Gate | TWK | handover 스킬 |
-|---------|------|-----|----------|-----|--------------|
-| 위상군 (DnT) | Wave 1+Phase 3 | ✓ | ✓ S36 | ✓ | 수동 (S38 마이그 예정) |
-| 코드군 | Wave 1 | ✓ 원조 | — | fermion-wiki | — |
-| 디니군 | Wave 1 | — | — | — | — |
-| 리얼군 | Wave 1 | ✓ | — | — | — |
-| 어플군 | 구버전 | — | — | — | — |
-| 기록군 | 구버전 | — | — | — | — |
-| 빌드군 | 구버전 | — | — | — | — |
+| 에이전트 | TEMS | SDC | SDC Gate | TWK | Wiki 시각 | handover 스킬 |
+|---------|------|-----|----------|-----|-----------|--------------|
+| 위상군 (DnT) | Wave 1+Phase 3 | ✓ | ✓ S36 | ✓ | ✓ S39 로컬 | 수동 (S40 마이그 예정) |
+| 코드군 | Wave 1 | ✓ 원조 | — | fermion-wiki | — | — |
+| 디니군 | Wave 1 | — | — | — | — | — |
+| 리얼군 | Wave 1 | ✓ | — | — | — | — |
+| 어플군 | 구버전 | — | — | — | — | — |
+| 기록군 | 구버전 | — | — | — | — | — |
+| 빌드군 | 구버전 | — | — | — | — | — |

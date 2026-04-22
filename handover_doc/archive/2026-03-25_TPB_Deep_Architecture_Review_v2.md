@@ -1,3 +1,10 @@
+---
+date: 2026-03-25
+type: handover
+cssclass: twk-handover
+tags: [session, handover]
+---
+
 # TPB 심층 아키텍처 리뷰 v2
 ## 위상적 구조 분석 + 경쟁 환경 대비 진단
 

@@ -1,53 +1,158 @@
-# wesang Wiki — Index
+---
+title: 위상군 Wiki
+date: 2026-04-22
+status: Active
+updated: 2026-04-21
+session: S38
+cssclass: twk-index
+tags: [wiki, index, wesanggoon]
+---
 
-> 마지막 갱신: 2026-04-21 (S38 — SDC 선택적 발동 decision)
+# 위상군 Wiki
+
+> [!abstract]+ Wesanggoon Knowledge Base
+> **Triad Chord Studio — 위상군(位相群)** 의 지식 베이스.
+>
+> Karpathy **3-Layer Wiki 방법론** 의 L3 큐레이션 레이어 — 네 가지 위상 시스템의 결정 · 개념 · 패턴 · 원리 · 사후분석을 기록합니다.
+>
+> `TEMS` · `DVC` · `SDC` · `TWK`
+
+> [!info] 메타
+> - **마지막 갱신** — 2026-04-21 · Session 38 (SDC 선택적 발동)
+> - **관리 주기** — Ingest 자동 · Lint 5세션마다 또는 20 페이지
+> - **다음 Lint 주기** — Session 41
+> - **변경 이력** — [[log|Wiki Change Log]]
+
+---
+
+## 최근 변경
 
 ```dataview
-TABLE date, status, scope
+TABLE WITHOUT ID
+  file.link as "페이지",
+  date as "날짜",
+  status as "상태",
+  scope as "범위"
 FROM "docs/wiki"
 WHERE file.name != "index" AND file.name != "log"
 SORT date DESC
-LIMIT 20
+LIMIT 8
 ```
 
+---
+
+## 시스템 빠른 이동
+
+> [!tip]+ 4개 위상 시스템
+> | 시스템 | 정의 | 한 줄 설명 |
+> |:------:|:-----|:----------|
+> | **TEMS** | [[concepts/TEMS]] | LLM 행동 교정 메모리 (TCL / TGL) |
+> | **DVC**  | [[concepts/DVC]]  | 결정론적 빌드 검증 프레임워크 |
+> | **SDC**  | [[concepts/SDC]]  | Opus → Sonnet 서브에이전트 위임 계약 |
+> | **TWK**  | *(이 위키 자체)* | Karpathy 3-Layer 위키 방법론 구현 |
+>
+> **분류 체계** — [[concepts/System_vs_Skill]] (System / Skill / Hybrid 3-way)
+
+> [!question]+ 혼동 방지 대조표
+> - [[concepts/TCL_vs_TGL]] — *좁은 규칙(TCL)* vs *넓은 위상 패턴(TGL)*
+> - [[concepts/DVC_vs_TEMS]] — *빌드 검증(DVC)* vs *LLM 교정(TEMS TCL)*
 
 ---
 
-## Decisions
+## Decisions — 결정
 
-- [[decisions/2026-04-21_sdc-selective-dispatch]] — SDC §0 을 규칙기반(기본) / 자동트리거(확장) 모드로 분리 (Implemented, S38)
-- [[decisions/2026-04-21_handover-skill-packaging]] — 핸드오버 시스템 독립 스킬(`bobpullie/handover`) 패키징 결정 (Implemented, S37)
-- [[decisions/2026-04-20_wave1-standardization]] — TEMS Wave 1 (Phase 0-2) 전 에이전트 표준 승격 (Accepted)
-- [[decisions/2026-04-20_tems-phase3-deployment]] — Phase 3 (tool_gate + compliance_tracker) 위상군 단독 관찰 유보 (Observation)
-- [[decisions/2026-04-20_dvc-skill-promotion]] — DVC 글로벌 스킬 승격 + 위상군 dogfood 설치 (Accepted)
-- [[decisions/2026-04-20_plugin-remote-repos]] — 4개 플러그인 원격 레포 체계 확립 (bobpullie/{TEMS,TWK,DVC,SDC}) (Accepted)
-- [[decisions/2026-04-20_sdc-gate-phase3-integration]] — SDC Auto-Dispatch gate 를 Phase 3 tool_gate_hook 에 편입 (TCL #120 자동 강제) (Implemented, S36)
+> [!check] 아키텍처 · 정책 결정
+> 구현되었거나 승인된 주요 결정. Status: `Implemented` · `Accepted` · `Observation`
 
-## Patterns
-
-- [[patterns/Classification_7_Category]] — TGL 7-카테고리 분류 체계 (TGL-T/S/D/P/W/C/M) + 발동 Hook 시점
-- [[patterns/DVC_Case_Lifecycle]] — 버그 발견 → case 일반화 → 영구 회귀 방지 6단계 순환
-
-## Concepts
-
-- [[concepts/TEMS]] — Topological Evolving Memory System 정의 + 아키텍처 개요
-- [[concepts/TCL_vs_TGL]] — 좁은 규칙(TCL) vs 넓은 위상 패턴(TGL) 분류 기준 비교
-- [[concepts/DVC]] — Deterministic Verification Checklist: 결정론적 빌드 검증 프레임워크
-- [[concepts/DVC_vs_TEMS]] — DVC vs TEMS TCL 혼동 방지 대조표 (S33 사고 기반)
-- [[concepts/SDC]] — Subagent Delegation Contract: Opus→Sonnet 위임 계약 (Design by Contract 구조)
-- [[concepts/System_vs_Skill]] — System/Skill/Hybrid 3-way 분류 체계 (TEMS/DVC/SDC/TWK 분류표)
-
-## Postmortems
-
-- [[postmortems/20260420_sdc-gate-violation]] — S36 본체 SDC Auto-Dispatch 위반 → gate 편입 트리거 (Confirmed, T1+T2)
-
-## Principles
-
-- [[Self_Containment(TEMS 자기완결성)]] — TEMS 자기완결성 원리: memory/ 만으로 완결, 외부 패키지 금지
-- [[principles/Case_Generalization]] — 버그 수정 시 case 일반화 우선 원리 (DVC 핵심)
-- [[principles/Per_Agent_Local_QMD]] — 에이전트별 프로젝트 로컬 QMD 데이터 관리 원리 (S35 전 에이전트 공통)
-
+```dataview
+TABLE WITHOUT ID
+  file.link as "Decision",
+  status as "상태",
+  phase as "Phase",
+  date as "날짜"
+FROM "docs/wiki/decisions"
+SORT date DESC
+```
 
 ---
-*관리: LLM (Ingest/Lint 시 자동 갱신), 큐레이션: 인간*
-*이 파일은 wiki의 진입점. Obsidian에서 북마크 권장.*
+
+## Concepts — 개념
+
+> [!info] 시스템 · 용어의 정의
+> 고유명사 · 시스템 이름 · 용어 차이의 기준선.
+
+```dataview
+TABLE WITHOUT ID
+  file.link as "Concept",
+  status as "상태",
+  scope as "범위"
+FROM "docs/wiki/concepts"
+SORT file.name ASC
+```
+
+---
+
+## Patterns — 패턴
+
+> [!abstract] 반복되는 위상 패턴
+> 카테고리 분류 체계 · 수명주기 등 일반화된 구조.
+
+```dataview
+TABLE WITHOUT ID
+  file.link as "Pattern",
+  status as "상태",
+  scope as "범위"
+FROM "docs/wiki/patterns"
+SORT file.name ASC
+```
+
+---
+
+## Principles — 원리
+
+> [!quote] 설계 원리
+> 판단 기준 · 금지 사항 · 시스템 운영 원칙.
+
+```dataview
+TABLE WITHOUT ID
+  file.link as "Principle",
+  status as "상태",
+  scope as "범위"
+FROM "docs/wiki/principles"
+SORT file.name ASC
+```
+
+---
+
+## Postmortems — 사후분석
+
+> [!bug] 실제 사고 · 실수 기록
+> 원인 분석 → 재발 방지 규칙으로 이어진 사건.
+
+```dataview
+TABLE WITHOUT ID
+  file.link as "Postmortem",
+  status as "상태",
+  date as "날짜"
+FROM "docs/wiki/postmortems"
+SORT date DESC
+```
+
+---
+
+> [!example]- 위키 전체 현황 (펼치기)
+> ```dataview
+> TABLE WITHOUT ID
+>   file.link as "페이지",
+>   date as "날짜",
+>   status as "상태",
+>   scope as "범위"
+> FROM "docs/wiki"
+> WHERE file.name != "index" AND file.name != "log"
+> SORT date DESC
+> ```
+
+---
+
+*관리 — LLM (Ingest / Lint 자동 갱신) · 큐레이션 — 인간*
+*이 파일은 위키의 진입점. Obsidian 북마크 권장.*
