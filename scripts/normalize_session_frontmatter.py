@@ -28,6 +28,8 @@ DATE_PATTERNS = [
 
 SESSION_PATTERN = re.compile(r"[_-]s(?:ession)?(\d+)", re.IGNORECASE)
 
+WIKI_REQUIRED_FIELDS = ["date", "status"]
+
 FOLDER_CONFIG = {
     "docs/session_archive": {
         "type": "raw",
@@ -171,6 +173,21 @@ def process_file(path: Path, folder_key: str, dry_run: bool) -> str:
     new_content = serialize_frontmatter(merged_meta, body)
     path.write_text(new_content, encoding="utf-8")
     return "added" if not existing_meta else "updated"
+
+
+def validate_wiki_file(path: Path) -> list[str]:
+    """docs/wiki/** 파일의 필수 필드 검증. 수정 없음.
+
+    Returns:
+        누락 필드별 warning 메시지 리스트. 이상 없으면 [].
+    """
+    content = path.read_text(encoding="utf-8")
+    meta, _ = parse_frontmatter(content)
+    warnings = []
+    for field in WIKI_REQUIRED_FIELDS:
+        if field not in meta:
+            warnings.append(f"{path.name}: '{field}' 누락")
+    return warnings
 
 
 def serialize_frontmatter(meta: dict, body: str) -> str:

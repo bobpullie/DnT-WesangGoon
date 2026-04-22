@@ -13,6 +13,7 @@ from scripts.normalize_session_frontmatter import (
     parse_frontmatter,
     process_file,
     serialize_frontmatter,
+    validate_wiki_file,
 )
 
 
@@ -252,3 +253,31 @@ def test_process_file_tags_union(tmp_path: Path):
     process_file(p, "handover_doc", dry_run=False)
     content = p.read_text(encoding="utf-8")
     assert "tags: [custom, session, handover]" in content
+
+
+def test_validate_wiki_file_passes(tmp_path: Path):
+    p = tmp_path / "concept.md"
+    p.write_text("---\ndate: 2026-04-20\nstatus: Active\n---\n# X\n", encoding="utf-8")
+    warnings = validate_wiki_file(p)
+    assert warnings == []
+
+
+def test_validate_wiki_file_missing_date(tmp_path: Path):
+    p = tmp_path / "concept.md"
+    p.write_text("---\nstatus: Active\n---\n", encoding="utf-8")
+    warnings = validate_wiki_file(p)
+    assert any("date" in w for w in warnings)
+
+
+def test_validate_wiki_file_missing_status(tmp_path: Path):
+    p = tmp_path / "concept.md"
+    p.write_text("---\ndate: 2026-04-20\n---\n", encoding="utf-8")
+    warnings = validate_wiki_file(p)
+    assert any("status" in w for w in warnings)
+
+
+def test_validate_wiki_file_no_frontmatter(tmp_path: Path):
+    p = tmp_path / "concept.md"
+    p.write_text("# X\n", encoding="utf-8")
+    warnings = validate_wiki_file(p)
+    assert len(warnings) >= 2  # date, status 둘 다 누락
