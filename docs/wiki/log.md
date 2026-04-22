@@ -2,6 +2,45 @@
 
 > append-only. 삭제 금지. 최신이 위.
 
+## 2026-04-22 — [Session Close] S41 종료
+- [Ingest] decisions/2026-04-22_session-artifacts-indexing (Implemented, S41) — 세션 산출물 자동 인덱싱 시스템 도입
+- [System] `scripts/normalize_session_frontmatter.py` 신설 — 9 함수 · 36 unit tests · idempotent frontmatter 병합 (스칼라 skip · 배열 union)
+- [System] `docs/session_artifacts.md` Dataview 통합 타임라인 인덱스 신설 (최근 작성 10 / 최근 수정 10)
+- [System] `docs/wiki/index.md` 에 `![[../session_artifacts]]` embed 섹션 추가 (기존 최근 변경 섹션 유지)
+- [Config] `wiki.config.json.session_artifacts` 섹션 신설 — folders · date_patterns · wiki_validate_root · defaults fallback
+- [Automation] session-lifecycle step 5.5 편입 — L2 추출 직후 normalize 자동 실행
+- [Apply] 138 파일 frontmatter 자동 주입 (109 added + 29 merged + wiki/index.md date·status 누락 보충). idempotency 2-cycle 검증
+- [Visual] `.obsidian/snippets/twk.css` 4 신규 cssclass (raw=slate · handover=orange · recap=teal · timeline=purple) · `wiki.config.json.obsidian.cssclasses` 등록
+- [Global] **TCL #93 override — 종일군 판단으로 `bobpullie/TWK` 글로벌 배포 완료** (`83a0e70`, push origin main). script · session_artifacts.md.template · wiki.config.json.template · SKILL.md 4 파일 포함. 배포 버전 smoke test 3 pass
+- L2 추출: `docs/session_archive/20260422_session1_raw.md` (Q=14, A=46)
+- Step 5.5 실전 검증 — S41 신규 3 파일 (handover + recap + L2) 에 자동 frontmatter 주입 (added: 3)
+- 본문 신규 wiki 페이지: 1 (decisions/2026-04-22_session-artifacts-indexing)
+- 위상군 wiki 페이지: 19 → 20
+- 다음 lint 주기: S41~ 5세션 후 또는 20 페이지 추가 시
+- 핸드오버: [[../../handover_doc/2026-04-22_session41]]
+
+## 2026-04-21 — [Ingest] Obsidian_as_IDE concept (S40 working)
+- [Ingest] concepts/Obsidian_as_IDE (Draft) — Karpathy LLM Wiki 방법론에서 Obsidian 역할 정의 (Viewer / Navigator / Query Engine / Ingestion 4축)
+- 원문 출처: [Karpathy llm.wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) verbatim 인용 2건
+- 도구 목록 확정: Web Clipper (obsidianmd/obsidian-clipper 공식) · Marp Slides (samuele-cozzi/obsidian-marp-slides 추천) · Dataview (기활성) · Graph view (기활성)
+- 변형 문서화: 양방향 파이프 — 위상군 SessionStart/UserPromptSubmit hook 으로 이미 부분 구현
+- 승격 트리거 3종 정의: 외부 ingest 수요 / 발표 수요 / inbox.md 감시 hook 구현
+- Status: Draft (실제 프로젝트 승격 대기)
+- 위상군 wiki 페이지: 18 → 19
+
+## 2026-04-21 — [Session Close] S39 종료
+- [Visual] `docs/wiki/index.md` 전면 재설계 — Obsidian 콜아웃 + dataview 카테고리별 테이블 + 시스템 빠른 이동 + 혼동 방지 대조
+- [Visual] `.obsidian/snippets/twk.css` 신설 — 위상군 톤 (6 카테고리 저채도 accent: sky/emerald/blue/amber/violet/red/slate). H1 좌측 바 · H2 밑줄 · 표 헤더 틴트 · 내부링크 점선 underline 등
+- [Visual] `.obsidian/appearance.json` — `enabledCssSnippets: ["twk"]` 활성화
+- [Tool] `scripts/tag_wiki_cssclass.py` 신설 — 폴더 → `twk-{category}` cssclass 자동 주입 스크립트 (dry-run 지원)
+- 20 wiki 파일에 cssclass 태깅 적용 (15 신규 + 5 기존 유지)
+- [Universal] Vault-wide 표 가독성 규칙 — `word-break: keep-all` (한글 어절 보존) + `min-width: 5em` (칸 붕괴 방지) + `:has(table)` 기반 `--line-width` 변수 override
+- 본문 신규 wiki 페이지: 0 (index 재설계 외 L3 curation 없음 — Karpathy 원칙 "억지로 쓰지 말 것")
+- 위상군 wiki 페이지: 18 유지
+- 글로벌 TWK (`bobpullie/TWK`) 배포 **보류** — TCL #93 준수, 위상군 로컬 검증 단계
+- 다음 lint 주기: S41 (5세션 후) 또는 20 페이지 시점 (S36 지정 유지)
+- 핸드오버: [[../../handover_doc/2026-04-21_session39]]
+
 ## 2026-04-21 — [Session Close] S38 종료
 - [Ingest] decisions/2026-04-21_sdc-selective-dispatch (Implemented, S38) — SDC §0 규칙기반/자동트리거 모드 분리 / 커밋 `4d31cf5`
 - L2 추출: `docs/session_archive/20260421_session2_raw.md` (Q=9, A=34)
