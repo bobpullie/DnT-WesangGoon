@@ -1,6 +1,7 @@
 import pytest
 from scripts.normalize_session_frontmatter import (
     extract_date_from_filename,
+    extract_session_from_filename,
     parse_frontmatter,
     serialize_frontmatter,
 )
@@ -72,3 +73,20 @@ def test_extract_date_no_date_returns_none():
 def test_extract_date_ignores_year_in_middle():
     """파일명 중간의 숫자열이 년도로 오인되면 안 됨."""
     assert extract_date_from_filename("foo_123456_bar.md") is None
+
+
+def test_extract_session_word_format():
+    assert extract_session_from_filename("20260420_session1_raw.md") == "S1"
+
+
+def test_extract_session_multi_digit():
+    assert extract_session_from_filename("2026-04-21_session40.md") == "S40"
+
+
+def test_extract_session_not_present():
+    assert extract_session_from_filename("2026-04-22_note.md") is None
+
+
+def test_extract_session_sN_shortform():
+    """sN 형식도 허용 (혹시 미래에 사용될 경우)."""
+    assert extract_session_from_filename("20260421_s3_raw.md") == "S3"

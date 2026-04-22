@@ -23,6 +23,8 @@ DATE_PATTERNS = [
     re.compile(r"^(\d{4})(\d{2})(\d{2})"),     # 20260420
 ]
 
+SESSION_PATTERN = re.compile(r"[_-]s(?:ession)?(\d+)", re.IGNORECASE)
+
 
 def extract_date_from_filename(name: str) -> str | None:
     """파일명 맨 앞에서 YYYY-MM-DD 또는 YYYYMMDD 를 추출.
@@ -34,6 +36,17 @@ def extract_date_from_filename(name: str) -> str | None:
         if m:
             y, mo, d = m.group(1), m.group(2), m.group(3)
             return f"{y}-{mo}-{d}"
+    return None
+
+
+def extract_session_from_filename(name: str) -> str | None:
+    """파일명에서 'session{N}' 또는 's{N}' 패턴으로 session 번호 추출.
+
+    성공 시 'S{N}', 실패 시 None.
+    """
+    m = SESSION_PATTERN.search(name)
+    if m:
+        return f"S{m.group(1)}"
     return None
 
 
