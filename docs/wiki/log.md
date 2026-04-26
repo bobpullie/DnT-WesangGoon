@@ -2,6 +2,32 @@
 
 > append-only. 삭제 금지. 최신이 위.
 
+## 2026-04-27 — [Session Close] S44 종료 (TWK Multi-Vault Aggregation 설계 + Phase 0 Foundation)
+- [Ingest] decisions/2026-04-27_twk-multi-vault-architecture (Accepted, S44) — 6개 활성 프로젝트 단일 통합 Vault + 모바일 (Quartz + Cloudflare Access) 결정. Repo 책임 분리 (TWK 코드 vs KJI_WIKI mirror).
+- [Ingest] concepts/Multi_Vault_Aggregation (Draft, S44) — TWK v0.4 vault aggregator 핵심 개념 정의 (junction = 데스크탑 view, mirror = 모바일 배포, vault.config.json = 단일 진실 원천)
+- [Spec] `docs/superpowers/specs/2026-04-26-twk-multi-vault-aggregation-design.md` (commit `5d6b0fe`, ~640줄, status Accepted) — 6개 design section + 4 Resolved Questions + Success Criteria
+- [Plan] `docs/superpowers/plans/2026-04-27-twk-v0.4-vault-aggregator.md` (commit `667538b`, ~2900줄, 21 task TDD)
+- [Package] **TWK v0.4-vault-aggregator branch (worktree `~/.claude/skills/TWK-v0.4-wt`)** — Phase 0 Foundation 6/21 tasks 완료:
+  - T1 `65838b8` pytest 셋업 + conftest fixtures
+  - T2 `e2ac23c` vault.config template + 매뉴얼 skeleton
+  - T3 `32097b1` + `eec3eb2` (review fix) `_vault_common.py` 7 tests
+  - T4 `debf2e2` `_vault_junction.py` (Win32 mklink/J + POSIX symlink fallback) 4 tests
+  - T5 `1185398` `vault_init.py` (메타 vault 초기화 + Windows backslash hardening) 3 tests
+  - T6 `bd42f37` 메인 + 프로젝트 인덱스 템플릿 (Dataview 쿼리)
+- [Lessons] 3 implementation patterns (다음 세션 T7+ 적용): (1) 외부 라이브러리 예외 → 도메인 예외 wrap (T3 review 발견 → T4 사전 적용), (2) Subprocess error → 도메인 예외 wrap (T4 정착), (3) Windows 경로 JSON 들어갈 때 `Path.as_posix()` 필수 (T5 정착)
+- [Pending] T7-T21 (vault_join 트랜잭션 / vault_sync git / 보조 명령 / 릴리스) — S45 진행, plan 명시
+- [Pending] bobpullie/KJI_WIKI repo 생성 + Cloudflare Pages + Access 셋업 — Phase 4-5 시점 종일군 작업
+- L2 추출: `docs/session_archive/20260427_session1_raw.md` (Q=16, A=47)
+
+## 2026-04-26 — [Session] S43 (TEMS v0.3.0 → v0.3.1 history cleanse)
+- [Ingest] decisions/2026-04-26_tems-v0.3.0-history-cleanse (Implemented, S43) — v0.3.0 (PR #1, LM Studio 직호출, 168× 가속) 채택 + v0.3.1 squash + 익명화 결정 통합
+- [Ingest] postmortems/20260426_tems-canonical-info-leak (Resolved, S43) — public repo 사용자명/회사명/한국어 에이전트명/절대경로 13일 노출 → squash 로 영구 제거
+- [Package] **bobpullie/TEMS v0.2.2 단명 릴리즈** — CUDA 부재 환경 nvidia-smi 기반 BM25 폴백 (commit fa9bc5d, tag v0.2.2). v0.3.0 PR #1 머지로 즉시 superseded.
+- [Package] **bobpullie/TEMS v0.3.0 PR #1 (미니PC, 종일군 직접 작업)** — qmd CLI subprocess 제거 → LM Studio `/v1/embeddings` 직호출. dense_backend.py + vector_store.py 신규. 측정 기반 자동 감지 (한글 e2e < 300ms). RRF 가중치 dense main(0.5–0.8) 복원. AMD 780M iGPU + Vulkan 검증.
+- [Security] **v0.3.1 force push (단일 cleansed init commit `45a4407`)** — git bundle 백업 (118KB, complete history) → 종일군 로컬 보존. 14 파일 익명화 (위상군→운영자/김종일, 종일군→운영자, WesangGoon/Triad Chord Studio→KIM JONG IL, 절대경로→placeholder, MEMORY_DIR 동적 탐지). LICENSE: MIT 유지, Copyright KIM JONG IL.
+- [Cleanup] 원격 구 tag (v0.2.0/0.2.1/0.2.2) + 구 branch (docs/v0.3-readme-cleanup, feat/phase3-templates-layer1) 삭제. PR #1 MERGED 보존, PR #2 자동 CLOSED.
+- [Verify] fresh `pip install git+...TEMS.git` → version 0.3.1 + scaffold CLI + import smoke OK.
+
 ## 2026-04-22 — [Session Close] S42 종료
 - [Ingest] decisions/2026-04-22_tems-upstream-canonical (Implemented, S42) — bobpullie/TEMS 를 TEMS canonical upstream 으로 확정
 - [Ingest] patterns/Enforcement_4_Layer (Active, S42) — TEMS 규칙 강제력 4계층 구조 (L1 자연어 / L2 deny JSON / L3 compliance / L4 DVC)
