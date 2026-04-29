@@ -1,0 +1,10 @@
+자축/과장 표현 검출 — TGL-C 후보.
+매칭 토큰: {matched_tokens}
+turn_index: {turn_index}
+직전 응답 발췌:
+  {assistant_excerpt}
+forbidden: 메타-결함 차단 hook/규칙 적용 직후 또는 검증 미완료 단계에서 자축어({matched_tokens}) 사용
+required: 객관 수치 + 명시적 한계 인정 + 미해결 항목 cite. 자축어 0회 유지
+verification:
+  success_signal: 동일 컨텍스트에서 자축 토큰 0회
+  compliance_check: 핸드오버/recap 본문 grep '{matched_tokens[0]}' = 0건

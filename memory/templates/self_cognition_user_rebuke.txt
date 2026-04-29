@@ -1,0 +1,9 @@
+사용자 질책/정정 요구 검출 — TGL-C 후보.
+매칭 토큰: {matched_tokens}
+turn_index: {turn_index}
+직전 사용자 발췌:
+  {user_excerpt}
+직전 응답 발췌:
+  {assistant_excerpt}
+forbidden: 사용자 질책 신호 이후 실패 인정, 정정 범위, TEMS 등록 판단을 누락
+required: 질책 원인과 재발 방지 규칙 후보를 명시하고 등록 또는 기각 사유를 남김

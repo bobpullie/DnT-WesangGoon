@@ -1,0 +1,7 @@
+자기 정정 후 등록 누락 검출 — TGL-M 후보.
+매칭 토큰: {matched_tokens}
+turn_index: {turn_index}
+직전 응답 발췌:
+  {assistant_excerpt}
+forbidden: 정정합니다, 재발, 메타-결함 등 자기 인지 표현 후 TEMS 등록 판단 생략
+required: 자기 정정이 구조적 재발인지 판단하고 pending draft 또는 수동 등록 경로를 남김

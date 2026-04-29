@@ -15,7 +15,9 @@ import re
 from pathlib import Path
 
 # memory 디렉토리를 import path에 추가
-MEMORY_DIR = Path(__file__).parent
+# S49 P0 정정: .resolve() 누락 시 cwd 의존 — Path(__file__).parent 가 './' 로 정규화되어
+# .parent 가 다시 './' 로 무한 루프 (sys.path 보강 무효). 모든 hook module canonical pattern.
+MEMORY_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(MEMORY_DIR.parent))
 
 from memory.fts5_memory import MemoryDB
@@ -166,6 +168,53 @@ def get_ths_scores() -> dict[int, tuple[float, str]]:
     """Backward-compat shim — get_rule_health() 의 축소 반환."""
     health = get_rule_health()
     return {rid: (h["ths_score"], h["status"]) for rid, h in health.items()}
+
+
+def get_user_annotations() -> dict[int, dict]:
+    """rule_user_annotations 테이블에서 사용자 코멘트 로드 (옵션 테이블).
+
+    종일군이 viewer 로 단 코멘트/severity. 테이블 부재(viewer 미설치) 시 빈 dict 반환 →
+    기존 preflight 동작 100% 보존.
+
+    severity:
+      - info    : 부드러운 힌트, 규칙 텍스트 아래 표시
+      - warn    : 강조 표시 — 에이전트 우선 고려
+      - disable : preflight 주입에서 완전히 제외 (소프트 비활성화)
+    """
+    import sqlite3
+    db_path = MEMORY_DIR / "error_logs.db"
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT rule_id, comment, severity FROM rule_user_annotations"
+        ).fetchall()
+        conn.close()
+        return {
+            r["rule_id"]: {
+                "comment": (r["comment"] or "").strip(),
+                "severity": r["severity"] or "info",
+            }
+            for r in rows
+            if (r["comment"] or "").strip() or r["severity"] == "disable"
+        }
+    except Exception:
+        # 테이블 미생성(마이그레이션 안 함) 또는 DB 오류 시 무시
+        return {}
+
+
+def _format_user_annot(annot: dict) -> str | None:
+    """user annotation dict 를 preflight 주입용 한 줄로 포맷.
+
+    'disable' 은 호출 측이 사전에 필터링하므로 여기선 도달 X.
+    """
+    sev = annot.get("severity", "info")
+    comment = annot.get("comment", "")
+    if not comment:
+        return None
+    if sev == "warn":
+        return f"      ⚠ [종일군 코멘트 — WARN]: {comment}"
+    return f"      💬 [종일군 코멘트]: {comment}"
 
 
 def record_fire(rule_ids: list[int]) -> None:
@@ -389,10 +438,19 @@ def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, lis
     # 규칙 건강 지표 로드 (Layer 1: violation_count 포함)
     health_map = get_rule_health()
 
-    # 재정렬 + archive 제외
-    tcl_hits = rank_by_ths(preflight_result.get("tcl_hits", []), health_map)[:MAX_TCL]
-    tgl_hits = rank_by_ths(preflight_result.get("tgl_hits", []), health_map)[:MAX_TGL]
-    cascade_hits = rank_by_ths(preflight_result.get("cascade_hits", []), health_map)[:MAX_CASCADE]
+    # 사용자 코멘트/severity 로드 (옵션 — viewer 로 단 코멘트)
+    annot_map = get_user_annotations()
+    disabled_ids = {rid for rid, a in annot_map.items() if a.get("severity") == "disable"}
+
+    def _drop_disabled(hits: list) -> list:
+        if not disabled_ids:
+            return hits
+        return [h for h in hits if h.get("id") not in disabled_ids]
+
+    # 재정렬 + archive 제외 + disable 코멘트로 마킹된 규칙 제외
+    tcl_hits = _drop_disabled(rank_by_ths(preflight_result.get("tcl_hits", []), health_map))[:MAX_TCL]
+    tgl_hits = _drop_disabled(rank_by_ths(preflight_result.get("tgl_hits", []), health_map))[:MAX_TGL]
+    cascade_hits = _drop_disabled(rank_by_ths(preflight_result.get("cascade_hits", []), health_map))[:MAX_CASCADE]
     predictions = preflight_result.get("predictions", [])[:MAX_PREDICT]
 
     if not tcl_hits and not tgl_hits and not cascade_hits and not predictions:
@@ -413,6 +471,9 @@ def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, lis
             lines.append(f"  #{rid}{sdc_mark}{annot}: {text}")
             if isinstance(rid, int):
                 fired_ids.append(rid)
+                user_line = _format_user_annot(annot_map.get(rid, {}))
+                if user_line:
+                    lines.append(user_line)
 
     # Layer 1 강화: TGL 헤더에 필수 준수 마커. 풀텍스트 유지 (가드 행동이 잘리지 않도록).
     if tgl_hits:
@@ -425,6 +486,9 @@ def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, lis
             if isinstance(rid, int):
                 fired_ids.append(rid)
                 tgl_fired.append(rid)
+                user_line = _format_user_annot(annot_map.get(rid, {}))
+                if user_line:
+                    lines.append(user_line)
 
     if cascade_hits:
         lines.append("[CASCADE]")
@@ -441,6 +505,9 @@ def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, lis
                 fired_ids.append(rid)
                 if cat == "TGL":
                     tgl_fired.append(rid)
+                user_line = _format_user_annot(annot_map.get(rid, {}))
+                if user_line:
+                    lines.append(user_line)
 
     if predictions:
         lines.append("[PREDICT]")
@@ -459,6 +526,48 @@ def format_rules(preflight_result: dict, compact: bool = True) -> tuple[str, lis
 
     lines.append("</preflight-memory-check>")
     return "\n".join(lines), fired_ids
+
+
+def format_self_cognition_pending(max_items: int = 10) -> str:
+    """pending_self_cognition drafts 를 UserPromptSubmit 컨텍스트에 주입."""
+    pending_dir = MEMORY_DIR / "pending_self_cognition"
+    try:
+        drafts = sorted(pending_dir.glob("*.json"))
+    except Exception as e:
+        _log_diagnostic("preflight_self_cognition_pending_read_failure", e)
+        return ""
+    if not drafts:
+        return ""
+
+    lines = [f"<self-cognition-pending count=\"{len(drafts)}\">"]
+    lines.append(f"  ⚠ 자기-인지 강제 등록 보류 {len(drafts)}건 — 다음 응답 전 처리 의무.")
+    for draft_path in drafts[:max_items]:
+        try:
+            draft = json.loads(draft_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            _log_diagnostic("preflight_self_cognition_draft_parse_failure", e)
+            continue
+        draft_id = draft.get("draft_id") or draft_path.stem
+        signal = draft.get("signal_type", "?")
+        priority = draft.get("priority", "?")
+        matched = ", ".join(str(t) for t in draft.get("matched_tokens", [])[:5])
+        classification = draft.get("suggested_classification", "?")
+        abstraction = draft.get("suggested_abstraction", "?")
+        topo = str(draft.get("suggested_topological_case", "")).replace("\n", " ")[:120]
+        rel_path = f"memory/pending_self_cognition/{draft_path.name}"
+        lines.append(f"  [{draft_id}] signal={signal} priority={priority} matched=\"{matched}\"")
+        lines.append(f"    suggested: {classification} / {abstraction} / \"{topo}\"")
+        lines.append(
+            "    조치: python memory/tems_commit.py --type TGL --classification "
+            f"{classification} ... (draft path: {rel_path})"
+        )
+        lines.append(
+            f"    또는 reject: python memory/self_cognition_gate.py --reject {draft_id} --reason \"최소 10자 사유\""
+        )
+    if len(drafts) > max_items:
+        lines.append(f"  ... +{len(drafts) - max_items}건 더")
+    lines.append("</self-cognition-pending>")
+    return "\n".join(lines)
 
 
 def detect_project_scope(cwd: str) -> list[str]:
@@ -545,12 +654,16 @@ def main():
         if not prompt.strip():
             sys.exit(0)
 
+        pending_output = format_self_cognition_pending()
+
         # 프로젝트 스코프 감지 (v2026.3.29 관리군)
         allowed_scopes = detect_project_scope(cwd)
 
         # 키워드 추출
         keywords = extract_keywords(prompt)
         if not keywords:
+            if pending_output:
+                print(pending_output)
             sys.exit(0)
 
         db = MemoryDB()
@@ -663,6 +776,9 @@ def main():
         # 확장 모드 활성화: sdc_auto_trigger_enabled 태그 TCL 1건 등록 (SDC.md §0 참조).
         if detect_sdc_mode() == "rule+auto":
             print("<sdc-mode>rule+auto</sdc-mode>")
+
+        if pending_output:
+            print(pending_output)
 
     except Exception as e:
         # Phase 0 T1.1: silent fail 금지. 구조화 로깅 + degraded 신호 출력

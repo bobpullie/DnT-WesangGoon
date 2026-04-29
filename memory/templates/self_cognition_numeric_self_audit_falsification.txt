@@ -1,0 +1,9 @@
+수치 자가감사 불일치 검출 — TGL-W 후보.
+매칭 토큰: {matched_tokens}
+turn_index: {turn_index}
+직전 응답 발췌:
+  {assistant_excerpt}
+누락 failure:
+  {missing_failures}
+forbidden: 최근 *_failure 이벤트가 있는데 errors=0, failure=0, 문제 없음 등으로 보고
+required: jsonl failure 목록과 수치 보고를 대조하고 불일치 시 정정 및 원인 명시

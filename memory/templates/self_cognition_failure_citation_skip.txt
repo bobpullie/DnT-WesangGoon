@@ -1,0 +1,9 @@
+최근 failure 인용 누락 검출 — TGL-W 후보.
+매칭 토큰: {matched_tokens}
+turn_index: {turn_index}
+직전 응답 발췌:
+  {assistant_excerpt}
+누락 failure:
+  {missing_failures}
+forbidden: 핸드오버/recap 작성 시 최근 *_failure timestamp와 후속 처치 누락
+required: 각 failure timestamp를 본문에 인용하고 원인/처치/불필요 사유 중 하나를 명시

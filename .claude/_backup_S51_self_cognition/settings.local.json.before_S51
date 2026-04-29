@@ -1,0 +1,191 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "TEMS_REGISTRY_PATH": "E:/AgentInterface/tems_registry.json"
+  },
+  "permissions": {
+    "additionalDirectories": [
+      "C:/Users/bluei/.claude/skills/TWK-v0.4-wt",
+      "C:/Users/bluei/.claude/skills/TWK"
+    ],
+    "allow": [
+      "WebFetch(domain:*)",
+      "Bash(git:*)",
+      "Bash(cd:*)",
+      "Bash(npm:*)",
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)",
+      "Read(//e//**)",
+      "Read(//e/ChildSchedule/**)",
+      "Bash(python -m pytest tests/ -q --tb=short)",
+      "Bash(python tems_scaffold.py scaffold --agent-id appgoon --agent-name \"어플군\" --project ChildSchedule --cwd \"E:/ChildSchedule\")",
+      "Bash(python:*)",
+      "Bash(python tems_scaffold.py restore --agent-id buildgoon)",
+      "Bash(python tems_scaffold.py restore --agent-id managegoon)",
+      "Bash(ls E:/AgentInterface/*.md)",
+      "Skill(recall)",
+      "Bash(ls -d .worktrees)",
+      "Bash(ls -d worktrees)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(echo \"exit: $?\")",
+      "Read(//e/KnowledgeHub/**)",
+      "Read(//e/KnowledgeHub/.claude/**)",
+      "Bash(grep -rn \"^from \\\\.\\\\|^import \" scripts/*.py)",
+      "Bash(wc -l scripts/*.py)",
+      "Bash(mkdir:*)",
+      "Bash(find tests:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Read(//tmp/**)",
+      "Bash(cat pyproject.toml)",
+      "Bash(cat setup.cfg)",
+      "Bash(cat setup.py)",
+      "Bash(echo \"EXIT_CODE: $?\")",
+      "Bash(pytest tests/ -v --tb=short)",
+      "Bash(sqlite3 /E/DnT/DnT_WesangGoon/memory/error_logs.db \".schema\")",
+      "Bash(python3:*)",
+      "Bash(wc:*)",
+      "Bash(mkdir -p \"E:/bobpullie/TEMS\")",
+      "Read(//e/bobpullie/**)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(pytest:*)",
+      "Bash(ls:*)",
+      "Bash(cp \"E:/AgentInterface/tems_templates/gitignore.template\" \"E:/bobpullie/TEMS/src/tems/templates/gitignore.template\")",
+      "Bash(cp \"E:/AgentInterface/tems_templates/preflight_hook.py\" \"E:/bobpullie/TEMS/src/tems/templates/preflight_hook.py\")",
+      "Bash(cp \"E:/AgentInterface/tems_templates/tems_commit.py\" \"E:/bobpullie/TEMS/src/tems/templates/tems_commit.py\")",
+      "Bash(tems --help)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(tee /tmp/pip_output.txt)",
+      "Bash(echo \"DONE $?\")",
+      "Bash(tee /tmp/tems_help.txt)",
+      "Bash(echo \"exit $?\")",
+      "Bash(TEMS_REGISTRY_PATH=\"E:/AgentInterface/tems_registry.json\" python memory/preflight_hook.py)",
+      "Bash(python -c \"import tems; print\\(tems.__file__\\)\")",
+      "Bash(echo \"---EXIT:$?---\")",
+      "Bash(xargs grep:*)",
+      "Bash([ -f \"$dir/.claude/tems_agent_id\" ])",
+      "Bash([ -f \"$dir/memory/preflight_hook.py\" ])",
+      "Bash([ -f \"$dir/memory/tems_commit.py\" ])",
+      "Bash(cp E:/bobpullie/TEMS/src/tems/templates/preflight_hook.py E:/KnowledgeHub/memory/preflight_hook.py)",
+      "Bash(cp E:/bobpullie/TEMS/src/tems/templates/tems_commit.py E:/KnowledgeHub/memory/tems_commit.py)",
+      "Bash(grep -v \":0$\")",
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
+      "Bash(du -sh \"E:/DnT/DnT_WesangGoon/\"*/)",
+      "Bash(TEMS_REGISTRY_PATH=\"E:/AgentInterface/tems_registry.json\" tems scaffold:*)",
+      "Bash(py:*)",
+      "Bash(codex exec -m gpt-5.5 --full-auto*)",
+      "Bash(py -3.12 e:/DnT/DnT_WesangGoon/scripts/*)",
+      "Bash(py -3.12 E:/DnT/DnT_WesangGoon/scripts/*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import sys,io; sys.stdout=io.TextIOWrapper(sys.stdout.buffer,encoding='utf-8'); p=r'E:/DnT/DnT_WesangGoon/handover_doc/CURRENT_STATE.md'; print('=== CURRENT_STATE.md (handover) ==='); print(open(p,encoding='utf-8').read())\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/run_decay_if_due.py\"",
+            "timeout": 65
+          },
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/audit_diagnostics_recent.py\" --silent --hours 24",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/preflight_hook.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/tool_gate_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/handover_failure_gate.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/MRV_DnT/.workflow/hooks/changelog_hook.py\"",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/memory_bridge.py\"",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/tool_failure_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/compliance_tracker.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"E:/DnT/DnT_WesangGoon/memory/retrospective_hook.py\"",
+            "timeout": 8
+          }
+        ]
+      }
+    ]
+  },
+  "permissionMode": "bypassPermissions"
+}
