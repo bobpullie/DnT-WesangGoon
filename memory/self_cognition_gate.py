@@ -24,7 +24,9 @@ MEMORY_DIR = Path(__file__).resolve().parent
 DIAG_PATH = MEMORY_DIR / "tems_diagnostics.jsonl"
 PENDING_DIR = MEMORY_DIR / "pending_self_cognition"
 TEMPLATE_DIR = MEMORY_DIR / "templates"
+STATE_PATH = MEMORY_DIR / ".self_cognition_state.json"
 LOOKBACK_HOURS = 24
+DEDUP_TURN_WINDOW = 2
 KST = timezone(timedelta(hours=9))
 
 REGEX_FLAGS = re.UNICODE | re.MULTILINE
@@ -133,6 +135,11 @@ NUMERIC_AUDIT_PATTERNS = [
 
 NEGATION_RE = _compile(r"지\s*(?:않|못)|아니|없")
 RETROSPECTIVE_RE = _compile(r"었어|었었|예전(?:에)?|과거(?:에)?|S\d{2}\s*(?:에서|의)|직전\s*세션|재발")
+RETRO_SECTION_RE = _compile(
+    r"자기\s*위반|위반\s*\d+\s*건|위반\s*사례|반성|회고|학습\s*자료|메타[-\s]?결함"
+    r"|자기\s*인지|self.cognition|self.violation|postmortem|포스트모템"
+)
+RETRO_SECTION_LOOKBEHIND = 400
 
 
 def _extract_content(message: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]]]:
@@ -249,7 +256,14 @@ def _is_whitelisted_match(text: str, user_text: str, match: re.Match[str], maske
     around = text[max(0, match.start() - 30): min(len(text), match.end() + 30)]
     if RETROSPECTIVE_RE.search(around):
         return True
+    if _in_retrospective_section(text, match.start()):
+        return True
     return False
+
+
+def _in_retrospective_section(text: str, pos: int) -> bool:
+    start = max(0, pos - RETRO_SECTION_LOOKBEHIND)
+    return bool(RETRO_SECTION_RE.search(text[start:pos]))
 
 
 def _summarize_tool_uses(tool_uses: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -347,7 +361,10 @@ def detect_signals(user_turn: Turn, assistant_turn: Turn) -> list[Signal]:
 
         reversal_tokens = []
         for pattern in REVERSAL_PATTERNS:
-            reversal_tokens.extend(m.group(0) for m in pattern.finditer(assistant_text))
+            for match in pattern.finditer(assistant_text):
+                if _is_whitelisted_match(assistant_text, user_text, match, masked):
+                    continue
+                reversal_tokens.append(match.group(0))
         has_tems_commit = any(
             tool.get("name") == "Bash"
             and "tems_commit.py" in str((tool.get("input") or {}).get("command", ""))
@@ -372,9 +389,13 @@ def detect_signals(user_turn: Turn, assistant_turn: Turn) -> list[Signal]:
             break
 
     if not skip_self_ref and failures:
+        masked = _masked_spans(assistant_text)
         numeric_tokens = []
         for pattern in NUMERIC_AUDIT_PATTERNS:
-            numeric_tokens.extend(m.group(0) for m in pattern.finditer(assistant_text))
+            for match in pattern.finditer(assistant_text):
+                if _is_whitelisted_match(assistant_text, user_text, match, masked):
+                    continue
+                numeric_tokens.append(match.group(0))
         if numeric_tokens:
             signals.append(Signal("numeric_self_audit_falsification", _unique(numeric_tokens), "high", failures))
 
@@ -522,6 +543,48 @@ def write_draft(draft: dict[str, Any]) -> Path:
     return final_path
 
 
+def _load_dedup_state() -> dict[str, Any]:
+    if not STATE_PATH.exists():
+        return {}
+    try:
+        return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        _log_diagnostic("self_cognition_state_read_failure", e)
+        return {}
+
+
+def _save_dedup_state(state: dict[str, Any]) -> None:
+    try:
+        STATE_PATH.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        _log_diagnostic("self_cognition_state_write_failure", e)
+
+
+def apply_dedup(signals: list[Signal], turn_index: int) -> list[Signal]:
+    if not signals:
+        return signals
+    state = _load_dedup_state()
+    new_state = dict(state)
+    for sig in signals:
+        prev = state.get(sig.signal_type) or {}
+        prev_turn = int(prev.get("turn_index", -10))
+        prev_tokens = set(prev.get("tokens") or [])
+        cur_tokens = set(sig.matched_tokens)
+        recent = (turn_index - prev_turn) <= DEDUP_TURN_WINDOW
+        token_subset = bool(cur_tokens) and cur_tokens.issubset(prev_tokens)
+        if recent and token_subset:
+            sig.priority = "low"
+            if "dedup_suppressed" not in sig.matched_tokens:
+                sig.matched_tokens = sig.matched_tokens + ["dedup_suppressed"]
+        new_state[sig.signal_type] = {
+            "turn_index": turn_index,
+            "tokens": sorted(cur_tokens),
+            "ts": datetime.now().isoformat(),
+        }
+    _save_dedup_state(new_state)
+    return signals
+
+
 def run_gate(stdin_text: str | None = None) -> list[Path]:
     raw = sys.stdin.read() if stdin_text is None else stdin_text
     if not raw.strip():
@@ -546,6 +609,7 @@ def run_gate(stdin_text: str | None = None) -> list[Path]:
         return []
     try:
         signals = detect_signals(user_turn, assistant_turn)
+        signals = apply_dedup(signals, turn_index)
         paths = []
         for signal in signals:
             paths.append(write_draft(build_draft(signal, user_turn, assistant_turn, turn_index)))

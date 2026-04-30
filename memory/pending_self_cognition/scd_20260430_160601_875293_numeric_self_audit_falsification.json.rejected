@@ -1,0 +1,28 @@
+{
+  "draft_id": "scd_20260430_160601_875293_numeric_self_audit_falsification",
+  "created_at": "2026-04-30T16:06:01.875293+09:00",
+  "signal_type": "numeric_self_audit_falsification",
+  "matched_tokens": [
+    "문제없"
+  ],
+  "priority": "high",
+  "context": {
+    "user_prompt_excerpt": "",
+    "assistant_response_excerpt": "## S55 종료 ✓\n\n### Push 결과\n- 위상군 `master`: `d911ee6..4ac2274` (6 files, +1036/-3 — CLAUDE.md / 핸드오버 / CURRENT_STATE / recap / L2 raw / TCL #133 룰)\n- canonical SDC `main`: `121e3ee..b7b7097` (직전 push, 본 세션 작업)\n\n### 본 세션 산출 (압축)\n\n| 영역 | 산출물 |\n|------|--------|\n| **인프라 신규** | DVC `TEMS_PATH_ORPHAN_001` / SDC `migration_orphan_check` / TGL #131 (TGL-W) / TGL #132 (TGL-C) / TCL #133 (4 원칙) |\n| **부채 해소 (5→0)** | `memory_bridge.py` `_resolve_automemory_dir()` / README / planner-agent / internal template / SDC.md 추상화 |\n| **인지 모델 정착** | 5번째 자산 handover 발견 / 4 원칙 push 게이트 / CLAUDE.md 양쪽 + auto-memory |\n| **legacy 처리** | `E:/AgentInterface/tems_core/DEPRECATED.md` 동봉 (S60 이후 삭제 + 종일군 승인) |\n\n### 자기 위반 4건 (TGL/TCL 으로 일반화 정착)\n1. \"PC/사용자 문제없습니다\" + 4건 부채 동시 출현 → TGL #132 (TGL-C)\n2. SDC canonical push 누락 직전 → 종일군 지적 회수 (TCL #119)\n3. preflight 가 deprecated 경로 매번 주입 (TGL #74) → 미해결 (S56 B)\n4. 코드군에 SDC 끌어들인 답 (5-Asset 독립성 위반) → 종일군 지적 정정 → TCL #133 신규\n\n### S56 부트 우선순위\n**(A)** self_cognition detector 임계 재설계 ",
+    "tool_uses_summary": [],
+    "missing_failures": [
+      {
+        "timestamp": "2026-04-29T17:23:20.604479",
+        "event": "handover_gate_stdin_parse_failure"
+      }
+    ]
+  },
+  "suggested_classification": "TGL-W",
+  "suggested_abstraction": "L2",
+  "suggested_topological_case": "수치 자가감사 불일치 검출 — TGL-W 후보.\n매칭 토큰: 문제없\nturn_index: 102\n직전 응답 발췌:\n  ## S55 종료 ✓\n\n### Push 결과\n- 위상군 `master`: `d911ee6..4ac2274` (6 files, +1036/-3 — CLAUDE.md / 핸드오버 / CURRENT_STATE / recap / L2 raw / TCL #133 룰)\n- canonical SDC `main`: `121e3ee..b7b7097` (직전 push, 본 세션 작업)\n\n### 본 세션 산출 (압축)\n\n| 영역 | 산출물 |\n|------|--------|\n| **인프라 신규** | DVC `TEMS_PATH_ORPHAN_001` / SDC `migration_orphan_check` / TGL #131 (TGL-W) / TGL #132 (TGL-C) / TCL #133 (4 원칙) |\n| **부채 해소 (5→0)** | `memory_bridge.py` `_resolve_automemory_dir()` / README / planner-agent / internal template / SDC.md 추상화 |\n| **인지 모델 정착** | 5번째 자산 handover 발견 / 4 원칙 push 게이트 / CLAUDE.md 양쪽 + auto-memory |\n| **legacy 처리** | `E:/AgentInterface/tems_core/DEPRECATED.md` 동봉 (S60 이후 삭제 + 종일군 승인) |\n\n### 자기 위반 4건 (TGL/TCL 으로 일반화 정착)\n1. \"PC/사용자 문제없습니다\" + 4건 부채 동시 출현 → TGL #132 (TGL-C)\n2. SDC canonical push 누락 직전 → 종일군 지적 회수 (TCL #119)\n3. preflight 가 deprecated 경로 매번 주입 (TGL #74) → 미해결 (S56 B)\n4. 코드군에 SDC 끌어들인 답 (5-Asset 독립성 위반) → 종일군 지적 정정 → TCL #133 신규\n\n### S56 부트 우선순위\n**(A)** self_cognition detector 임계 재설계 \n누락 failure:\n  [{\"timestamp\": \"2026-04-29T17:23:20.604479\", \"event\": \"handover_gate_stdin_parse_failure\"}]\nforbidden: 최근 *_failure 이벤트가 있는데 errors=0, failure=0, 문제 없음 등으로 보고\nrequired: jsonl failure 목록과 수치 보고를 대조하고 불일치 시 정정 및 원인 명시\n",
+  "suggested_forbidden": "최근 failure가 있는데 errors=0 등으로 수치 자가감사 단언",
+  "suggested_required": "jsonl failure와 수치 보고를 대조한 뒤 불일치 시 정정",
+  "suggested_triggers": "문제없",
+  "suggested_tags": "self-cognition,meta-defect",
+  "draft_status": "pending"
+}

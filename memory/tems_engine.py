@@ -24,10 +24,17 @@ from pathlib import Path
 from typing import Optional
 from math import log
 
+# S52 D1 fix: 직접 실행 호환 (`python memory/tems_engine.py`).
+# 부모(프로젝트 루트)를 sys.path 에 보강해야 `from memory.X` 절대 import 가 성립.
+# .resolve() 필수 — cwd=memory/ 일 때 .parent 가 './' 로 정규화되어 보강 무효 회귀.
+_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
 from memory.fts5_memory import MemoryDB
 
-DB_PATH = Path(__file__).parent / "error_logs.db"
-QMD_RULES_DIR = Path(__file__).parent / "qmd_rules"
+DB_PATH = Path(__file__).resolve().parent / "error_logs.db"  # S49 P0: cwd 비의존
+QMD_RULES_DIR = Path(__file__).resolve().parent / "qmd_rules"
 
 # Windows에서 npm 글로벌 바이너리는 .cmd wrapper가 필요
 QMD_CMD = "qmd.cmd" if sys.platform == "win32" else "qmd"
@@ -77,8 +84,13 @@ class HybridRetriever:
         return fused
 
     def preflight(self, query: str, limit: int = 5) -> dict:
-        """하이브리드 preflight — TCL/TGL 분류 포함"""
+        """하이브리드 preflight — TCL/TGL 분류 포함.
+
+        S56-B: superseded 규칙(valid_until 비어있지 않음) 은 retrieval 단계에서 제외.
+        TemporalGraph.supersede_rule() 로 무효화된 규칙이 preflight 에 재등장하던 회귀 차단.
+        """
         results = self.search(query, limit=limit * 3, mode="auto")
+        results = [r for r in results if not r.get("valid_until")]
         return {
             "tcl_hits": [r for r in results if r.get("category") == "TCL"],
             "tgl_hits": [r for r in results if r.get("category") == "TGL"],
@@ -324,7 +336,16 @@ class HealthScorer:
             conn.commit()
 
     def compute_ths(self, rule_id: int) -> float:
-        """규칙의 Topological Health Score 계산"""
+        """규칙의 Topological Health Score 계산.
+
+        S49 패치: input 컬럼을 alive 한 source 로 swap.
+        - act_freq: activation_count (record_activation dead) → fire_count (preflight 갱신)
+        - 효용도: correction_success/total (record_activation dead) → compliance/violation
+          비율 (compliance_tracker 갱신, S49 자기진단으로 producer 살아있음 확정)
+        - age_decay: last_activated (dead) → last_fired (preflight 갱신) fallback chain
+
+        산식 weight (ALPHA~EPSILON) 는 보존. input source 만 정정.
+        """
         with self.db._conn() as conn:
             health = conn.execute(
                 "SELECT * FROM rule_health WHERE rule_id = ?", (rule_id,)
@@ -342,23 +363,28 @@ class HealthScorer:
 
         h = dict(health)
 
-        # 1. Activation Frequency (정규화: log 스케일)
-        act_freq = min(1.0, log(1 + h["activation_count"]) / log(1 + 50))
+        # 1. Activation Frequency — fire_count 기반 (S49 정정)
+        fire_count = h.get("fire_count") or 0
+        act_freq = min(1.0, log(1 + fire_count) / log(1 + 50))
 
-        # 2. Correction Impact (성공률)
-        if h["correction_total"] > 0:
-            corr_impact = h["correction_success"] / h["correction_total"]
+        # 2. Correction Impact — compliance/violation 비율 (S49 정정)
+        comp = h.get("compliance_count") or 0
+        viol = h.get("violation_count") or 0
+        total_judged = comp + viol
+        if total_judged > 0:
+            corr_impact = comp / total_judged
         else:
-            corr_impact = 0.5  # 데이터 없으면 중립
+            corr_impact = 0.5  # 판정 데이터 없으면 중립
 
         # 3. Topological Centrality (다른 규칙과의 키워드 겹침 정도)
         centrality = self._compute_centrality(rule_id)
 
-        # 4. Modification Entropy (수정이 잦으면 불안정)
-        mod_entropy = min(1.0, h["modification_count"] / 5.0)
+        # 4. Modification Entropy (수정이 잦으면 불안정 — record_modification dead 라 항상 0)
+        mod_entropy = min(1.0, (h.get("modification_count") or 0) / 5.0)
 
-        # 5. Age Decay (마지막 활성화로부터의 시간)
-        age_decay = self._compute_age_decay(h.get("last_activated"))
+        # 5. Age Decay — last_fired (preflight 갱신) fallback last_activated (S49 정정)
+        last_activity = h.get("last_fired") or h.get("last_activated")
+        age_decay = self._compute_age_decay(last_activity)
 
         ths = (
             self.ALPHA * act_freq
@@ -406,18 +432,33 @@ class HealthScorer:
 
             return min(1.0, overlap_count / max(1, len(all_rules)))
 
-    def _compute_age_decay(self, last_activated: Optional[str]) -> float:
-        """마지막 활성화로부터의 시간 기반 감쇠 (0~1)"""
-        if not last_activated:
-            return 0.5  # 활성화 기록 없으면 중간값
+    def _compute_age_decay(self, last_activity: Optional[str]) -> float:
+        """마지막 활동(fire 또는 activation)으로부터의 시간 기반 감쇠 (0~1).
 
-        try:
-            last = datetime.strptime(last_activated, "%Y-%m-%d %H:%M:%S")
-            days_since = (datetime.now() - last).days
-            # 270일(9개월)에서 1.0에 도달하는 선형 감쇠
-            return min(1.0, days_since / 270.0)
-        except ValueError:
-            return 0.5
+        S49 정정: ISO ('YYYY-MM-DDTHH:MM:SS.ffffff') 와 sqlite ('YYYY-MM-DD HH:MM:SS')
+        포맷 모두 지원 — last_fired 는 ISO, last_activated 는 sqlite 포맷 사용해왔음.
+        """
+        if not last_activity:
+            return 0.5  # 활동 기록 없으면 중간값
+
+        s = str(last_activity)
+        last = None
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+            try:
+                last = datetime.strptime(s, fmt)
+                break
+            except ValueError:
+                continue
+        if last is None:
+            try:
+                last = datetime.fromisoformat(s)
+            except Exception:
+                return 0.5
+
+        days_since = (datetime.now() - last).days
+        # 270일(9개월)에서 1.0에 도달하는 선형 감쇠
+        return min(1.0, max(0, days_since) / 270.0)
 
     def transition_status(self, rule_id: int) -> str:
         """THS에 따라 규칙 상태를 전이하고 새 상태를 반환"""
@@ -467,12 +508,13 @@ class HealthScorer:
             return new_status
 
     def get_health_report(self) -> list[dict]:
-        """전체 규칙의 건강 리포트"""
+        """전체 규칙의 건강 리포트 (S49 P1: last_fired/fire_count/comp/viol 추가 — alive 컬럼)."""
         with self.db._conn() as conn:
             rows = conn.execute("""
                 SELECT m.id, m.category, m.correction_rule,
                        h.activation_count, h.modification_count,
-                       h.ths_score, h.status, h.last_activated
+                       h.fire_count, h.compliance_count, h.violation_count,
+                       h.ths_score, h.status, h.last_activated, h.last_fired
                 FROM memory_logs m
                 LEFT JOIN rule_health h ON m.id = h.rule_id
                 ORDER BY COALESCE(h.ths_score, 0.5) DESC
@@ -764,17 +806,23 @@ class MetaRuleEngine:
         avg_mods = sum(mod_counts) / len(mod_counts) if mod_counts else 0
         stability = max(0.0, 1.0 - avg_mods / 5.0)
 
-        # 신선도: 최근 활성화된 규칙 비율
+        # 신선도: 최근 활성화된 규칙 비율 (S49 P1: last_activated dead → last_fired alive)
         now = datetime.now()
         fresh = 0
         for r in report:
-            if r.get("last_activated"):
+            last_activity = r.get("last_fired") or r.get("last_activated")
+            if not last_activity:
+                continue
+            last = None
+            for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
                 try:
-                    last = datetime.strptime(r["last_activated"], "%Y-%m-%d %H:%M:%S")
-                    if (now - last).days < 30:
-                        fresh += 1
+                    last = datetime.strptime(str(last_activity), fmt)
+                    break
                 except ValueError:
-                    pass
+                    continue
+            if last and (now - last).days < 30:
+                fresh += 1
         freshness = fresh / len(report) if report else 0.0
 
         overall = 0.4 * coverage + 0.3 * stability + 0.3 * freshness
@@ -1506,6 +1554,17 @@ class TemporalGraph:
             )
 
             conn.commit()
+
+        # S49 P1: record_modification wire — 구 rule 의 modification_count/last_modified 갱신.
+        # 이전엔 caller 0 (dead method) 였음. supersede 가 진짜 user-driven edit path 라
+        # 여기서 호출하면 modification_count 가 의미있게 누적됨.
+        try:
+            scorer = HealthScorer(db=self.db)
+            scorer.record_modification(old_rule_id)
+        except Exception:
+            # fail-soft — supersede 자체는 성공
+            pass
+
         return True
 
     # ─── Rule Versioning (버전 이력) ───

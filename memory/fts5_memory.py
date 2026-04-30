@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-DB_PATH = Path(__file__).parent / "error_logs.db"
+DB_PATH = Path(__file__).resolve().parent / "error_logs.db"  # S49 P0: cwd 비의존
 
 
 class MemoryDB:
@@ -53,9 +53,15 @@ class MemoryDB:
             """)
 
             # 컬럼 마이그레이션 (기존 DB 호환)
+            # S56-B: temporal columns (valid_from/valid_until/superseded_by) 도 여기서 보장 —
+            # search() SELECT 가 이 컬럼들을 참조하므로 fresh DB 에서도 NoSuchColumn 회피.
+            # (TemporalGraph._ensure_temporal_tables 와 중복이지만 idempotent 라 안전.)
             for col, default in [
                 ("keyword_trigger", "''"),
                 ("summary", "''"),
+                ("valid_from", "NULL"),
+                ("valid_until", "NULL"),
+                ("superseded_by", "NULL"),
             ]:
                 try:
                     conn.execute(f"ALTER TABLE memory_logs ADD COLUMN {col} TEXT DEFAULT {default}")
@@ -195,14 +201,19 @@ class MemoryDB:
             return cursor.lastrowid
 
     def search(self, query: str, limit: int = 10) -> list[dict]:
-        """BM25 랭킹 기반 전문 검색"""
+        """BM25 랭킹 기반 전문 검색.
+
+        S56-B: valid_from/valid_until/superseded_by 칼럼 노출 — HybridRetriever.preflight 가
+        supersede 된 규칙을 retrieval 단계에서 필터링할 수 있도록.
+        """
         with self._conn() as conn:
             rows = conn.execute(
                 """
                 SELECT
                     m.id, m.timestamp, m.context_tags, m.keyword_trigger,
                     m.action_taken, m.result, m.correction_rule,
-                    m.summary, m.category, m.severity, rank
+                    m.summary, m.category, m.severity,
+                    m.valid_from, m.valid_until, m.superseded_by, rank
                 FROM memory_fts f
                 JOIN memory_logs m ON f.rowid = m.id
                 WHERE memory_fts MATCH ?

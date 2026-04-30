@@ -21,6 +21,9 @@ memory/.retrospective_last_run
 # Phase 3 runtime state (TGL guard window)
 memory/active_guards.json
 
+# S56-A self-cognition gate dedup state (per-machine)
+memory/.self_cognition_state.json
+
 # DVC runtime logs (per-machine)
 logs/checklist/
 

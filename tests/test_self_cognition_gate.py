@@ -36,6 +36,7 @@ def isolated_gate(tmp_path, monkeypatch):
     monkeypatch.setattr(gate, "PENDING_DIR", pending)
     monkeypatch.setattr(gate, "TEMPLATE_DIR", templates)
     monkeypatch.setattr(gate, "DIAG_PATH", tmp_path / "tems_diagnostics.jsonl")
+    monkeypatch.setattr(gate, "STATE_PATH", tmp_path / ".self_cognition_state.json")
     return pending
 
 
@@ -167,3 +168,87 @@ def test_layer_f_escalates_hook_author_self_praise(isolated_gate, tmp_path):
     draft = read_draft(isolated_gate)
     assert draft["signal_type"] == "self_praise"
     assert draft["priority"] == "critical"
+
+
+# --- S56 P0(A) regression: false-positive 회귀 차단 ---
+
+def test_numeric_in_retro_violation_list_skipped(isolated_gate, tmp_path):
+    """S55 false-positive 재현: '자기 위반 4건' 헤더 + numbered list 안의 '문제없습니다' 인용 → fire 금지"""
+    write_failure(gate.DIAG_PATH)
+    text = (
+        "## 자기 위반 4건 (TGL/TCL 으로 일반화 정착)\n"
+        "1. 'PC/사용자 문제없습니다' + 4건 부채 동시 출현 → TGL #132 직접 출처\n"
+        "2. SDC canonical push 누락 직전 → 종일군 지적으로 회수 (TCL #119)\n"
+    )
+    run_fixture(tmp_path, line("user", "보고해"), line("assistant", [{"type": "text", "text": text}]))
+    assert draft_files(isolated_gate) == [], "회고 인용 문맥에서 numeric_self_audit_falsification 가 발동됨"
+
+
+def test_numeric_in_postmortem_section_skipped(isolated_gate, tmp_path):
+    write_failure(gate.DIAG_PATH)
+    text = (
+        "### 회고\n"
+        "S50 에서 '문제없음' 으로 단언했다가 잘못 보고된 사례.\n"
+    )
+    run_fixture(tmp_path, line("user", "회고"), line("assistant", [{"type": "text", "text": text}]))
+    assert draft_files(isolated_gate) == [], "회고 헤더 하 인용에서 fire 금지"
+
+
+def test_numeric_audit_context_still_fires(isolated_gate, tmp_path):
+    """회귀 가드: 진짜 audit 단언 (회고 마커 없음) 은 그대로 fire 해야 함"""
+    write_failure(gate.DIAG_PATH)
+    run_fixture(
+        tmp_path,
+        line("user", "상태"),
+        line("assistant", [{"type": "text", "text": "전체 점검 결과: errors=0, all pass"}]),
+    )
+    draft = read_draft(isolated_gate)
+    assert draft["signal_type"] == "numeric_self_audit_falsification"
+
+
+def test_cross_turn_dedup_downgrades_priority(isolated_gate, tmp_path):
+    """동일 signal+tokens 가 2턴 이내 재발 시 priority='low' + dedup_suppressed 마커"""
+    write_failure(gate.DIAG_PATH)
+    # 1회차: 정상 fire
+    run_fixture(
+        tmp_path,
+        line("user", "상태"),
+        line("assistant", [{"type": "text", "text": "errors=0"}]),
+    )
+    files1 = draft_files(isolated_gate)
+    assert len(files1) == 1
+    d1 = json.loads(files1[0].read_text(encoding="utf-8"))
+    assert d1["priority"] == "high"
+    # 2회차: 동일 signal+tokens → dedup
+    run_fixture(
+        tmp_path,
+        line("user", "상태"),
+        line("assistant", [{"type": "text", "text": "errors=0"}]),
+    )
+    files2 = sorted(draft_files(isolated_gate))
+    assert len(files2) == 2
+    d2 = json.loads(files2[-1].read_text(encoding="utf-8"))
+    assert d2["priority"] == "low"
+    assert "dedup_suppressed" in d2["matched_tokens"]
+
+
+def test_cross_turn_different_signal_independent(isolated_gate, tmp_path):
+    """서로 다른 signal_type 은 dedup 영향 없음"""
+    write_failure(gate.DIAG_PATH)
+    run_fixture(
+        tmp_path,
+        line("user", "상태"),
+        line("assistant", [{"type": "text", "text": "errors=0"}]),
+    )
+    run_fixture(
+        tmp_path,
+        line("user", "또 실패했네"),
+        line("assistant", [{"type": "text", "text": "정정하겠습니다."}]),
+    )
+    files = sorted(draft_files(isolated_gate))
+    assert len(files) == 2
+    types = {json.loads(f.read_text(encoding="utf-8"))["signal_type"] for f in files}
+    assert types == {"numeric_self_audit_falsification", "user_rebuke"}
+    for f in files:
+        d = json.loads(f.read_text(encoding="utf-8"))
+        assert d["priority"] != "low" or "dedup_suppressed" not in d.get("matched_tokens", [])
