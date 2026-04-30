@@ -1,6 +1,11 @@
 """
 TEMS Memory Bridge — AutoMemory feedback -> TEMS 자동 브릿지 (안전망)
-PostToolUse hook: memory/ 폴더에 feedback 타입 Write 감지 -> TEMS DB 자동 등록
+PostToolUse hook: AutoMemory 폴더에 feedback 타입 Write 감지 -> TEMS DB 자동 등록
+
+Portability (TGL #131 / DVC TEMS_PATH_ORPHAN_001):
+  AutoMemory 위치 (~/.claude/projects/<encoded_cwd>/memory/) 는 PC/사용자별로 다르므로
+  TEMS_AUTO_MEMORY_DIR env var 로 명시 지정. 미설정 시 best-effort cwd 인코딩 fallback.
+  둘 다 실패하면 hook 자체가 no-op (silent skip) — AutoMemory bridge 비활성.
 """
 
 import json
@@ -9,8 +14,46 @@ import os
 import re
 import sqlite3
 from datetime import datetime
+from pathlib import Path
 
-MEMORY_DIR = r"C:\Users\bluei\.claude\projects\E--AgentInterface\memory"
+
+def _resolve_automemory_dir() -> str | None:
+    """AutoMemory feedback 파일 저장 위치 (~/.claude/projects/<encoded_cwd>/memory) 탐지.
+
+    우선순위:
+      1. env TEMS_AUTO_MEMORY_DIR (사용자가 명시)
+      2. cwd 인코딩 후보 — Claude Code 규칙: drive letter lowercase + ':'/'\\\\'/'/' → '-'
+      3. glob fallback — projects/ 안에서 cwd 의 마지막 segment 매칭
+    모두 실패 시 None — bridge 비활성 (hook no-op).
+    """
+    env = os.environ.get("TEMS_AUTO_MEMORY_DIR", "").strip()
+    if env:
+        return env
+    cwd = os.getcwd()
+    home = os.path.expanduser("~")
+    projects_dir = Path(home) / ".claude" / "projects"
+    if not projects_dir.is_dir():
+        return None
+    # 인코딩 후보 (Claude Code 규약: 'e:\\DnT\\DnT_WesangGoon' → 'e--DnT-DnT-WesangGoon')
+    if len(cwd) >= 2 and cwd[1] == ":":
+        encoded = cwd[0].lower() + "-" + cwd[2:].replace("\\", "-").replace("/", "-")
+    else:
+        encoded = cwd.replace("/", "-").replace("\\", "-")
+    candidate = projects_dir / encoded / "memory"
+    if candidate.is_dir():
+        return str(candidate)
+    # glob 폴백 — 마지막 segment 매칭
+    last_segment = os.path.basename(cwd.rstrip("\\/"))
+    if last_segment:
+        for entry in projects_dir.iterdir():
+            if entry.is_dir() and last_segment in entry.name:
+                full = entry / "memory"
+                if full.is_dir():
+                    return str(full)
+    return None
+
+
+MEMORY_DIR = _resolve_automemory_dir()
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "error_logs.db")
 
 
@@ -119,6 +162,8 @@ def bridge_to_tems(parsed: dict) -> dict:
 
 
 def main():
+    if MEMORY_DIR is None:
+        return  # AutoMemory bridge 비활성 (TEMS_AUTO_MEMORY_DIR 미설정 + cwd 자동탐지 실패)
     try:
         hook_data = json.loads(sys.stdin.read())
     except Exception:
@@ -128,7 +173,7 @@ def main():
     if tool_name not in ("Write", "Edit"):
         return
     file_path = tool_input.get("file_path", "")
-    if MEMORY_DIR not in file_path.replace("/", "\\"):
+    if MEMORY_DIR.replace("/", "\\") not in file_path.replace("/", "\\"):
         return
     if file_path.endswith("MEMORY.md"):
         return

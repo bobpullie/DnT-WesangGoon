@@ -366,7 +366,7 @@ Phase 3 (Enforcement) 포함.
 
 - `memory/error_logs.db` 는 **git tracked 금지** (TGL #74) — WAL/journal/shm 포함. 바이너리 런타임 상태로 매 세션 dirty, 머지 불가.
 - 정규 소스는 `memory/qmd_rules/*.md` (tems_commit 자동 생성) — 이것만 tracked.
-- DB 복원: `E:/AgentInterface/tems_core/rebuild_from_qmd.py` (외부 도구, 별도 설치).
+- DB 복원: `tems restore --agent-id <id>` (canonical 패키지 — `pip install git+https://github.com/bobpullie/TEMS.git`, TCL #124 + TGL #131).
 
 ---
 
@@ -422,7 +422,7 @@ tail -20 memory/compliance_events.jsonl | jq .
 | TGL-T 외 카테고리는 hook 레벨 강제 미구현 | TGL-S/W/M 은 PreToolUse 로 일부 확장 가능 | Phase 4 계획 단계 |
 | `pattern_detector` 자동 등록은 품질 편차 | `needs_review=1` 태그로 수동 검토 | 주기적 재분류 필요 |
 | Windows 경로 정규화 일부 예외 | build_match_target 에서 `\` → `/` 변환 | 추가 케이스 발견 시 패치 |
-| DB 복원 도구가 외부 경로 의존 | `E:/AgentInterface/tems_core/rebuild_from_qmd.py` | 향후 `memory/` 내부로 자체 포함 예정 |
+| DB 복원 도구가 외부 경로 의존 (해소됨 / 2026-04-30) | canonical `tems` 패키지 (`pip install git+https://github.com/bobpullie/TEMS.git`) → `tems restore` CLI | A→B 마이그레이션 완료 (TGL #131 / DVC TEMS_PATH_ORPHAN_001) |
 
 ---
 

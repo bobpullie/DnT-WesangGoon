@@ -327,5 +327,67 @@ Agent(
 1. **게이트 통과 확인** — 서브에이전트의 체크리스트 응답을 파일·명령으로 실증 (trust but verify)
 2. **산출물 실존 확인** — `git diff`, 파일 경로, smoke test 로그
 3. **도메인 원칙 위반 탐지** — self-contained 위반, DB 스키마 파괴, 경로 하드코딩 회귀
-4. **미흡 시 조치**: 재위임 (정교한 제약 추가) 또는 위상군 직접 보완
-5. **TEMS 기록** — 반복 실수가 위임 프롬프트 누락에서 발생하면 TCL 등록
+4. **마이그레이션 완료 검증** — A→B 패키지/경로 이행 위임 시 `migration_orphan_check` 강제 (아래 별도 절)
+5. **미흡 시 조치**: 재위임 (정교한 제약 추가) 또는 위상군 직접 보완
+6. **TEMS 기록** — 반복 실수가 위임 프롬프트 누락에서 발생하면 TCL 등록
+
+## 마이그레이션 잔존 검출 (migration_orphan_check)
+
+> **빈자리 보강** — SDC L174 (신규 작성 시 하드코딩 금지) / L213 (포팅 시 substitute) / L224 (deliverable 보고) / L329 (Audit 시 회귀) 의 4개 하드코딩 조항은 모두 **신규 작성 또는 회귀 검출** 시점에서 작동. 그러나 **A→B 마이그레이션이 실제로 완료됐는지 (모든 caller 가 옛 마스터를 가리키지 않는지)** 검출하는 절차가 없었음. 이 절이 그 빈자리를 메운다. (S55 결함 — 코드군이 .gitignore 의 legacy `tems_core` 코멘트를 보고 마스터 위치 미파악)
+
+### 적용 트리거
+
+다음 중 하나라도 해당하면 위임 brief 와 보고 양식에 본 절을 명시 추가한다:
+- TEMS / 엔진 / 패키지 마스터 위치 변경 (예: A=raw 사본 hub → B=packaged + pip install) — 위상군 사례: DVC TEMS_PATH_ORPHAN_001
+- AutoMemory cross-project 절대경로를 env / marker walk 로 교체
+- 에이전트 hub 절대경로를 패키지/registry-relative 참조로 교체
+- DB / 설정 파일 위치 표준 변경
+
+### A→B 마이그레이션 위임 시 추가 게이트
+
+기존 5항목 (목적·게이트·제약·완료기준·보고) 에 **다음 6번째 항목 강제 추가**:
+
+```markdown
+## 6. 마이그레이션 잔존 검출 (필수)
+완료 선언 전 다음 모두 증명:
+
+### A 패턴 (legacy) 잔존 caller 0건 증명
+- 명령: `python -m checklist.runner --case TEMS_PATH_ORPHAN_001` (또는 `python -c "from checklist.chk_tems import TEMSChecklist; ..."`)
+- 통과 조건: 0 위반
+- 또는 grep 명시: `grep -rn "<A_pattern>" --exclude-dir={_backup,__pycache__,session_archive,handover_doc,qmd_drive,postmortems}` 결과 첨부
+
+### B 패턴 (canonical) 정상 작동 증명
+- import / CLI 호출 1회 + 출력 첨부 (예: `python -c "import tems; print(tems.__version__)"`)
+
+### Bypass 사용 시 사유 명시
+- `# chk:skip TEMS_PATH_ORPHAN <사유>` 또는 `<!-- chk:skip ... -->` 사용 라인 모두 보고
+- 사유 없는 bypass 무효 (DVC base 정책)
+```
+
+### 위상군 결과 수령 후 trust-but-verify
+
+위 6번 항목 응답을 받으면 위상군이 **동일 명령 재실행** 으로 검증:
+
+```bash
+# (1) DVC case 직접 실행
+python -m checklist.runner --module tems --case TEMS_PATH_ORPHAN_001
+
+# (2) DVC case 가 미설치/구버전이면 grep 폴백
+grep -rn "E:[/\\\\]AgentInterface[/\\\\]\(tems_core\|memory\)" --include="*.py" --include="*.md" --include="*.json" \
+  --exclude-dir={_backup,__pycache__,session_archive,handover_doc,qmd_drive} memory/ .claude/ 2>/dev/null
+```
+
+서브에이전트 보고가 0건이라 했는데 위상군 grep 이 N>0 이면 **위임 실패** — 재위임 (또는 위상군 직접 보완).
+
+### Legacy 사본 처리 정책
+
+A→B 마이그레이션 완료 후 A 위치 (legacy raw 사본 디렉토리) 처리:
+1. **즉시 삭제 금지** (TGL #91 — 함부로 삭제하지 말 것)
+2. **DEPRECATED.md 동봉** — A 폴더 안에 deprecation notice + B 로의 대체 경로 + grace period (N 세션) 명시
+3. **N 세션 후** — 위상군이 잔존 caller 0건 재확인 후 종일군 승인하에 삭제
+
+### 관련 산출물
+
+- DVC case: `src/checklist/cases.json::TEMS_PATH_ORPHAN_001` + `src/checklist/chk_tems.py::check_tems_path_orphan`
+- TGL: TGL-W (마이그레이션 완료 검증) + TGL-C (no-problem 자기모순)
+- 본 SDC 절은 TCL #93 (TEMS 변경은 위상군 자체 검증 후 전파) 의 검증 단계 강화

@@ -91,10 +91,10 @@ skills:
 - **화면:** 1280x720 가로형 (Landscape), CSS viewport 640-840x360-420
 
 ## 9. TEMS 연동
-- Master DB: `E:\AgentInterface\memory\error_logs.db`
+- DB 위치: 각 에이전트 자체 `memory/error_logs.db` (registry: `TEMS_REGISTRY_PATH` env). 본 에이전트는 `<agent_root>/memory/error_logs.db`. — TGL #131 / DVC TEMS_PATH_ORPHAN_001
 - 작업 전: TEMS preflight로 과거 교훈 로딩
-- TCL 커밋: 미래방향 지시 감지 시 → `db.commit_tcl()`
-- TGL 커밋: 오류/실수 발생 시 → `db.commit_tgl()`
+- TCL 커밋: 미래방향 지시 감지 시 → `python memory/tems_commit.py --type TCL ...`
+- TGL 커밋: 오류/실수 발생 시 → `python memory/tems_commit.py --type TGL --classification TGL-X ...`
 
 ### 규칙 피드백 → TEMS 등록 (AutoMemory 아님)
 종일군이 작업 규칙/금지사항을 지시하면 **AutoMemory가 아닌 TEMS에 등록**한다:

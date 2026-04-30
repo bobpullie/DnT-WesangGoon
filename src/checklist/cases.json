@@ -48,6 +48,114 @@
       "auto_discover": true,
       "added_date": "2026-04-20",
       "severity": "MEDIUM"
+    },
+    {
+      "case_id": "TEMS_DIRECT_RUN_IMPORT_001",
+      "category": "tems",
+      "title": "memory/*.py 직접 실행 호환 (ModuleNotFoundError 회귀 방지)",
+      "generalized": "memory/X.py 가 top-level 에 'from memory.Y import Z' (절대 import) 만 가지면 'python memory/X.py' 직접 실행 시 ModuleNotFoundError 발생. __main__ guard 또는 sys.path 보강 필요.",
+      "origin_bug": "2026-04-29 16:02:59 decay_ths_sweep_setup_failure (S49). decay.py 가 cwd=memory/ 일 때 from memory.tems_engine import 실패. .resolve() canonical 적용으로 해결. tems_engine.py 직접 실행 경로는 별개로 미해결 (S52 D1).",
+      "checker": "chk_tems.py → check_tems_direct_run_import",
+      "scope": "memory/*.py — __main__ block 또는 if __name__=='__main__' 가진 모듈",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "MEDIUM"
+    },
+    {
+      "case_id": "TEMS_RESOLVE_CANONICAL_001",
+      "category": "tems",
+      "title": "Path(__file__).parent 의 .resolve() 누락 (cwd 의존 회귀)",
+      "generalized": "memory/*.py 에서 Path(__file__).parent 를 .resolve() 없이 사용하면 cwd 가 memory/ 일 때 './' 로 정규화되어 MEMORY_DIR.parent 도 './' 가 되고 sys.path 보강이 nop 이 된다. S49 P0 정정 패턴.",
+      "origin_bug": "2026-04-29 S49 audit. decay.py 가 sys.path 보강을 했는데도 ModuleNotFoundError 발생. 원인 = .resolve() 없이 .parent 호출. 11 module 일괄 적용으로 해결. 회귀 방지.",
+      "checker": "chk_tems.py → check_tems_resolve_canonical",
+      "scope": "memory/*.py",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "HIGH"
+    },
+    {
+      "case_id": "TEMS_HOOK_REGISTRY_FILE_EXISTS_001",
+      "category": "tems",
+      "title": ".claude/settings.local.json 의 hook command 파일 실재 검증",
+      "generalized": "settings.local.json 의 hooks.* 배열에 등록된 'python X.py' command 가 가리키는 파일이 실재해야 한다. 파일 부재 또는 절대경로 mismatch 는 hook 무음 실패 (Claude Code 가 에러 없이 skip).",
+      "origin_bug": "2026-04-29 S51 settings.local.json Stop hook 신규 등록 시 self_cognition_gate.py 경로 오타 가능성. 실재 검증 누락 시 hook 등록만 되고 실제로는 동작 안 함.",
+      "checker": "chk_tems.py → check_tems_hook_registry_file_exists",
+      "scope": ".claude/settings.local.json + 가리키는 모든 .py 파일",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "HIGH"
+    },
+    {
+      "case_id": "TEMS_DB_ORPHAN_RULE_HEALTH_001",
+      "category": "tems",
+      "title": "rule_health 의 orphan rule_id (memory_logs 부재)",
+      "generalized": "rule_health 테이블의 rule_id 가 memory_logs.id 에 존재하지 않으면 orphan. THS 산식 왜곡 + audit 노이즈. 0 강제.",
+      "origin_bug": "2026-04-29 S49 audit 에서 rule#71, #72 가 orphan rule_health 행으로 발견 — DELETE 처리. 유사 회귀 방지.",
+      "checker": "chk_tems.py → check_tems_db_orphan_rule_health",
+      "scope": "memory/error_logs.db",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "MEDIUM"
+    },
+    {
+      "case_id": "TEMS_HOOK_EMPTY_STDIN_GRACEFUL_001",
+      "category": "tems",
+      "title": "Hook 의 empty/invalid stdin graceful handling",
+      "generalized": "preflight/tool_gate/handover_failure_gate/tool_failure/compliance_tracker/retrospective/self_cognition 7개 hook 이 empty 또는 invalid JSON stdin 으로 호출되어도 Python traceback 누출 없이 graceful exit 해야. 누출 시 jsonl 노이즈 + Claude Code stderr 오염.",
+      "origin_bug": "2026-04-29 S50 17:23:20 handover_gate_stdin_parse_failure (의도된 fixture). 영구 가드 — empty stdin 도 hook 진입점에 도달할 수 있음 (Claude Code internal).",
+      "checker": "chk_tems.py → check_tems_hook_empty_stdin_graceful",
+      "scope": "memory/{preflight,tool_gate,handover_failure_gate,tool_failure,compliance_tracker,retrospective,self_cognition_gate}_hook.py",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "MEDIUM"
+    },
+    {
+      "case_id": "TEMS_THS_DEAD_COLUMN_REGRESSION_001",
+      "category": "tems",
+      "title": "compute_ths 의 dead column 입력 회귀 방지",
+      "generalized": "tems_engine.py의 compute_ths 메서드가 dead column (record_activation 류 / correction_success-total 비율 / last_activated) 을 input source 로 사용하면 S49 이전 상태로 회귀. fire_count / compliance/violation 비율 / last_fired 만 사용 강제.",
+      "origin_bug": "2026-04-29 S49 P0. compute_ths 가 dead 컬럼만 참조해서 모든 rule THS 가 0.5 (default) 였음. input swap 으로 해결. 회귀 방지 가드.",
+      "checker": "chk_tems.py → check_tems_ths_dead_column_regression",
+      "scope": "memory/tems_engine.py compute_ths 메서드",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "HIGH"
+    },
+    {
+      "case_id": "TEMS_AUDIT_DIAG_RECENT_FAILURE_HEALTH_001",
+      "category": "tems",
+      "title": "tems_diagnostics.jsonl 24h failure 누적 한계",
+      "generalized": "memory/tems_diagnostics.jsonl 의 24h 내 *_failure 이벤트 수가 임계 (5건) 을 초과하면 hook 인프라 회귀 가능성. 본 case 는 fail-fast 알람 — 인프라 자체 검증.",
+      "origin_bug": "2026-04-29 S49 16:02:59 decay 잔존 + S50 17:23:20 handover_gate fixture. 누적 2건. 5건 임계 초과 시 위상군이 즉시 root cause 추적해야.",
+      "checker": "chk_tems.py → check_tems_audit_diag_recent_failure_health",
+      "scope": "memory/tems_diagnostics.jsonl 최근 24h",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "MEDIUM"
+    },
+    {
+      "case_id": "TEMS_DECAY_TTHS_SWEEP_ALIVE_001",
+      "category": "tems",
+      "title": "decay sweep + ths 재계산 wire alive 검증",
+      "generalized": "python memory/decay.py --json 실행 시 ths_recomputed == total_rules 이고 ths_errors == 0 이어야. wire 끊김 회귀 방지.",
+      "origin_bug": "2026-04-29 S49 P0 — decay 가 dynamic import 로 HealthScorer 호출. 일부 환경에서 import 실패 시 ths_errors 증가. fail-fast 알람.",
+      "checker": "chk_tems.py → check_tems_decay_ths_sweep_alive",
+      "scope": "python memory/decay.py --dry-run 또는 --json (실제 sweep)",
+      "auto_discover": true,
+      "added_date": "2026-04-29",
+      "severity": "HIGH"
+    },
+    {
+      "case_id": "TEMS_PATH_ORPHAN_001",
+      "category": "tems",
+      "title": "TEMS A→B 마이그레이션 잔존 caller (legacy tems_core / AutoMemory cross-link)",
+      "generalized": "TEMS 엔진 마스터가 A(E:/AgentInterface/tems_core, raw .py 사본) → B(E:/bobpullie/TEMS, packaged 'tems' v0.3+) 로 이행한 후, caller 코드/문서/hook command 가 여전히 A 를 가리키면 portability 깨짐. 또한 AutoMemory 크로스-프로젝트 절대경로(C:\\Users\\<user>\\.claude\\projects\\E--AgentInterface\\memory) 도 동일 결함 — 다른 PC/사용자에서 import 즉시 깨짐. 신규 작성 시점이 아니라 마이그레이션 완료 후 잔존 검출이 핵심.",
+      "origin_bug": "2026-04-30 S55. 코드군이 .gitignore 코멘트(legacy tems_core 경로)를 보고 마스터 위치 미파악으로 추가 진단 발생. 위상군 자체에 memory_bridge.py:13 (C:\\Users\\bluei\\.claude\\projects\\E--AgentInterface\\memory 박힘), memory/README.md:369/425 (legacy tems_core/rebuild_from_qmd.py 안내), .claude/agents/planner-agent.md:94, .claude/agent-templates/internal.md:57 (E:\\AgentInterface\\memory\\error_logs.db = 마스터 DB 라고 잘못 명시) 등 잔존 caller 다수 발견. SDC.md L174/213/224/329 의 하드코딩 조항은 모두 신규 작성/포팅 시점 가드라 마이그레이션 잔존 검출 절차는 기존 SDC 에 부재.",
+      "checker": "chk_tems.py → check_tems_path_orphan",
+      "scope": "memory/*.py + memory/README.md + .claude/skills/*.md + .claude/agents/*.md + .claude/agent-templates/*.md + .claude/settings.local.json",
+      "auto_discover": true,
+      "added_date": "2026-04-30",
+      "severity": "HIGH"
     }
   ]
 }
