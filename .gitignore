@@ -55,3 +55,4 @@ $PROFILE
 # Runtime logs (session_end_sync 등)
 logs/session_end_sync.log
 logs/*.log
+viewer/_launch.log
