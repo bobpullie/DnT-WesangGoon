@@ -1,15 +1,45 @@
 ---
-date: 2026-04-29
+date: 2026-04-30
 type: handover
 cssclass: twk-handover
 tags: [session, handover]
 ---
 
 # 위상군 — 현재 프로젝트 상태 (Rolling State)
-> 마지막 갱신: 2026-04-29 Session 51 (본업) 종료 — **Self-Cognition Auto-Register Gate** (S50 TGL #128 한계 종단 차단). 위임 모델 첫 적용 = 위상군 설계 → code-reviewer audit (P0 4 + 시그널 누락 2 + P1 7) → codex GPT-5.5 구현 → 위상군 trust-but-verify (6 직접 검증 + codex 자가 18 acceptance). 9 신규 + 4 수정 + 14/14 test PASS. **TWK v0.4 Phase 0 (T7-T21) 진전 0** (S44 이래 6세션 연속 이월). 다음 회차 (S52) 권장 시퀀스: (A) §5 TGL #69 misclassification 사례 self-cognition gate 첫 in-band 검출 검증 + TEMS 등록 / (B) Windows codex CLI 호출 패턴 TGL 신규 / (C) S49/S50 P1 이월 / (D) TWK v0.4 재개.
-> 직전 본업 세션: **S51 종료** — memory/self_cognition_gate.py (Stop hook, 6-layer detector A user_rebuke / B self_praise / C failure_citation_skip / D reversal_without_registration / E numeric_self_audit_falsification / F hook_author_escalation) + 6 templates + tests/test_self_cognition_gate.py (14 cases) + preflight pending block + audit_diag stale 가시화 + handover_failure_gate self_invocation 4 marker 추가
-> 본업 누적: S44 (TWK 설계 + Phase 0 6/21) → S48 (TEMS 자기진단) → S49 (TEMS 복구 + 메타-결함 정정) → S50 (TGL #128 hook 강제 + 메타-결함 3차 재발) → **S51 (Self-Cognition Gate + 위임 모델 첫 적용)**
+> 마지막 갱신: 2026-04-30 Session 53 (본업) 종료 — **/tems-view 잔존 결함 4건 정정 + bobpullie/TEMS_GUI_Editor 첫 push + TCL #129 / TGL #130**. S48 의 viewer 결함 4건 (D1 native 모드 spawn 즉시 종료 = `__mp_main__` 가드 제거 / D2 콘솔창 깜빡임 = pythonw.exe + CREATE_NO_WINDOW / D3 외곽 스크롤바 + pagination 잘림 = client-side DOM chain dump 진단 후 chain 전체 강제 flex column + 100vh / D4 THS 미구현 경고 stale = 재기동만으로 자연 해소) 일괄 정정. Refresh THS now 버튼 신규 (decay.apply_decay 일괄 호출). canonical bobpullie/TEMS_GUI_Editor (4/30 04:27 UTC 빈 repo 로 생성) 첫 push (HEAD ef80e95, 5 file). 위상군 master: 1e65876 → 27c2e54. **메타-결함**: D3 해결 시 patch-and-pray 2회 후 종일군 질책 → DOM chain dump 강제 → 정확 fix. self_cognition false positive 2건 추가 (총 7건 누적). **TWK v0.4 Phase 0 진전 0** (S44 이래 8세션 연속 이월). 다음 회차 (S54) 권장 시퀀스: (A) self_cognition_gate detector 임계 재검토 (P0, false positive 7건 누적) / (B) TGL #130 compliance_check 보강 (P0) / (C) bobpullie/TEMS_GUI_Editor LICENSE / pyproject (P1) / (D) TWK v0.4 재개 (P2).
+> 직전 본업 세션: **S53 종료** — viewer/rule_viewer.py 4 fix (D1 main guard / D2 launcher / D3 layout / D4 자연 해소) + viewer/* 4 file + .claude/commands/tems-view.md commit + bobpullie/TEMS_GUI_Editor 첫 push + TCL #129 + TGL #130 (TGL-P/L2)
+> 본업 누적: S44 (TWK 설계 + Phase 0 6/21) → S48 (TEMS 자기진단 + viewer 도입) → S49 (TEMS 복구 + 메타-결함 정정) → S50 (TGL #128 hook 강제 + 메타-결함 3차 재발) → S51 (Self-Cognition Gate + 위임 모델 첫 적용) → S52 (TEMS 점검 + DVC 자동화 + canonical v0.4) → **S53 (viewer 인프라 마무리 + canonical TEMS_GUI_Editor 첫 push)**
 > aux 세션 누적: S45 (PC 보안/KRX NOS), S46 (홈서버 HTTPS), S47 (홈서버 운영 정상화) — 본업 무관
+
+## S53 핵심 산출 (본업, viewer 마무리 + canonical 첫 push)
+- **viewer 잔존 결함 4건 정정** ([viewer/rule_viewer.py](viewer/rule_viewer.py))
+  - **D1**: main guard `if __name__ in ("__main__", "__mp_main__"):` → `if __name__ == "__main__":` 1 토큰 제거. NiceGUI native_mode 의 `mp.Process(_open_window)` 자식 spawn 시 main() 재진입 차단. S48 의 "native 모드 실패 → --browser fallback" 결정 = 진단 불완전이었음을 재검토 통해 확정
+  - **D2**: [.claude/commands/tems-view.md](.claude/commands/tems-view.md) launcher 가 `sys.executable` (python.exe console subsystem) → `pythonw.exe` (windows subsystem, conhost.exe 없음) 분기 + `CREATE_NO_WINDOW` 플래그 추가. PowerShell `Get-CimInstance Win32_Process` 검증 시 자식 트리에 conhost.exe 0건
+  - **D3**: 외곽 스크롤바 + pagination 잘림 — 임시 JS DOM dump (`ui.run_javascript`) 로 chain 추출 → q-layout / q-page-container 가 Quasar default `display: block` 으로 flex chain 단절 발견 → chain 전체 강제 (`html, body, body > div, .nicegui-layout, .q-page-container, .q-page-container > .q-page, .q-page > .nicegui-content`) `display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; min-height: 0 !important;` + 최상단 100vh + `.q-table__middle { overflow: auto }` + 형제 sticky `flex: 0 0 auto`. 검증: 두 번째 dump 에서 모든 chain element h ≤ viewport.h (763px)
+  - **D4**: THS 컬럼 툴팁의 "⚠️ 미구현 — 모두 0.50" 경고 stale = S49 시점 갱신됐던 코드를 PID 15684 (S48 시점 메모리) 가 그대로 가지고 있던 문제. 재기동만으로 자연 해소. 별도 패치 0
+- **Refresh THS now 버튼 신규** ([viewer/rule_viewer.py:447-485](viewer/rule_viewer.py#L447-L485)) — footer 에 추가. `memory.decay.apply_decay(dry_run=False)` 호출 → 전 규칙 ths_score 재계산 + 60일/90일 status 전이 (24h 가드 무시 = 수동 강제). toast 알림 (recomputed/transitions/cold+/archive+)
+- **canonical bobpullie/TEMS_GUI_Editor 첫 push** — main HEAD `ef80e95`. 5 file (README.md / __init__.py / requirements.txt / rule_viewer.py / .gitignore). working dir = `E:/bobpullie/TEMS_GUI_Editor` (bobpullie/TEMS / TWK / handover 와 같은 위치)
+- **위상군 master push** — `1e65876..27c2e54`. viewer/ 4 file + .claude/commands/tems-view.md + .gitignore (`viewer/_launch.log` 추가)
+- **TCL #129** (workflow/debugging) — UI 문제 (layout/CSS/렌더링) 수정 시 진단 필수, patch-and-pray 금지. 트리거: UI 문제, layout, CSS, 스크롤, pagination, DOM 구조, NiceGUI, Quasar, flex
+- **TGL #130** (TGL-P/L2) — SPA viewport-fit 풀-페이지 layout 의 flex chain 단절 패턴. forbidden: 부분 CSS 추측 추가 / 정적 SPA HTML grep 으로 DOM 추론. required: client-side JS DOM chain dump → display:block 단절 layer 동정 → chain 전체 flex column + 100vh 강제 → 단일 element 만 overflow:auto. **Gate 경고 2건** (B_abstraction L1 경계, E_verifiability compliance_check 미정의) — S54 P0
+- **메타-결함 자기-진단 (patch-and-pray 2회 + 종일군 질책)** — D3 해결 시 본인이 두 차례 부분 CSS 패치 (`overflow: hidden` 추가 / `q-table__container { display:flex }` 만 추가) → 같은 증상 지속 → 종일군 "그때그때 부분적인 코드만 고쳐서 해결하려고하지말고" → 비로소 client-side JS DOM dump 진단. SPA 의 정적 served HTML (49KB shell + JSON config) 만 grep 해서 framework default class 단정한 게 근본 원인. TGL #130 의 forbidden 절이 정확히 본인 본인의 패턴을 잡음
+- **메타-결함 자기-진단 (self_cognition false positive 2건 추가)** — `scd_20260430_135036_*_self_praise` ("깔끔" — Windows pythonw subprocess 의 객관적 outcome 묘사) / `scd_20260430_140829_*_absolutization` ("100%" — CSS literal). 둘 다 reject. 누적 6건 → 7건 (S52 4 + S53 2 + S51 잔존 1). detector 가 단일 토큰 매칭만으로 판정해 기술적 outcome / code literal 을 자축으로 오분류. **S54 P0 = detector 임계 재검토** (S52 부터 이월된 그대로)
+- 자세한 핸드오버 + 반성: `handover_doc/2026-04-30_session53.md`
+
+## S52 핵심 산출 (본업, TEMS 점검 + DVC + canonical v0.4)
+- **TEMS 12 항목 alive 전수 검증** — THS 산식 (rule#102 = 0.226536 ≈ S49 ref) / system_health (overall 0.892) / decay sweep / .resolve() canonical / record_modification wire / hook 단위 작동 / pytest 50/50. 잔존 결함 4건 (D1~D4) 보고
+- **D1 fix (위상군)** — [memory/tems_engine.py](memory/tems_engine.py) top-level 에 `_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent); if _PROJECT_ROOT not in sys.path: sys.path.insert(0, _PROJECT_ROOT)` 추가. `python memory/tems_engine.py` 직접 실행 호환. DVC 8/8 silent 전환
+- **DVC TEMS 자동화** — [src/checklist/chk_tems.py](src/checklist/chk_tems.py) 신규 (TEMSChecklist + 8 checker 메서드 + AST docstring 회피) + [src/checklist/cases.json](src/checklist/cases.json) 8 case 등록 (S49~S52 결함 일반화)
+- **DVC Stop hook 통합** — [scripts/dvc_stop_hook.py](scripts/dvc_stop_hook.py) 신규 (silent + 재귀 회피 `DVC_TEMS_AUDIT_RUNNING=1` + 5s timeout + `logs/checklist/dvc_stop_audit.jsonl` 적재). [.claude/settings.local.json](.claude/settings.local.json) Stop chain 3rd entry. 매 응답 종료 ~470ms 자동 점검 정착
+- **canonical TEMS PR 4건 일괄 머지** — bobpullie/TEMS master HEAD `5c4b2d1` (v0.3.1 → v0.4.0):
+  - **PR #4** ([f87ecf6](https://github.com/bobpullie/TEMS/pull/4)): compute_ths input swap (fire_count/compliance/violation/last_fired) + compute_system_health last_fired migration + supersede_rule wire record_modification + .resolve() canonical 9 templates (10 files, +55/-25)
+  - **PR #5** ([95919a9](https://github.com/bobpullie/TEMS/pull/5)): Diagnostics & Self-Audit layer 3 templates (run_decay_if_due / audit_diagnostics_recent / audit_dead_state) + scaffold._PHASE4_TEMPLATES + _HOOK_PLAN 4-tuple args (4 files, +665/-10)
+  - **PR #6** ([f7ea82a](https://github.com/bobpullie/TEMS/pull/6)): tems_engine.py direct run 호환 (relative→absolute import + sys.path 보강) (1 file, +9/-1)
+  - **PR #7** ([5c4b2d1](https://github.com/bobpullie/TEMS/pull/7)): README "버전/Phase 이력" v0.3.1 + v0.4.0 항목 추가 (1 file, +4/-2)
+- **위상군 = canonical strict superset 명시** — 위상군 self-contained `memory/*.py` (`from memory.X` import) + canonical 미반영 layer (handover_failure_gate / self_cognition_gate + 6 templates + 14 tests). canonical 머지가 위상군에 미치는 영향 0
+- **canonical 미반영 (PR-3a/3b 보류)** — TCL #93 부합. handover_failure_gate path 외부화 + self_cognition 영문 시그널 추가 후 v0.5 표준화 권장
+- **self_cognition gate detector false positive 4차 누적** — 단일 토큰 매칭 ("alive" "깔끔" "메타-결함") 이 객관 보고/historical reference/PR 머지 결과 인용을 자축으로 오분류. S53 P0 = detector 임계 재검토
+- 자세한 핸드오버 + 반성: `handover_doc/2026-04-30_session52.md`
 
 ## S51 핵심 산출 (본업, Self-Cognition Auto-Register Gate)
 - **위임 모델 첫 적용** — 위상군 (Opus 4.7) 설계 → superpowers:code-reviewer (Opus subagent) audit → codex exec -m gpt-5.5 --full-auto 구현 → 위상군 trust-but-verify. 메타-결함 자기-방어 동기 구조적 차단 (설계자 ≠ 구현자)
