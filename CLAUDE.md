@@ -14,6 +14,47 @@
 - `E:/MRV/src/` 직접 수정 금지 — 구현은 반드시 빌드군 경유
 - 설계 변경 시 `E:/MRV/.workflow/CHANGELOG.md` 기록 + `docs/decisions/` 업데이트 필수
 
+## 플러그인/스킬 아키텍처 원칙 (5-Asset Independent + Local-Only + Universal)
+
+Triad Chord Studio 의 5개 자체 플러그인/스킬은 아래 4 원칙을 **모두** 만족해야 canonical GitHub 레포에 push 가능. 미달 시 위상군 본인 프로젝트 한정 사용으로 격리.
+
+### 5개 독립 자산
+
+| 자산 | Canonical 레포 | 형태 | sync 방법 |
+|------|----------------|------|-----------|
+| **TEMS** | https://github.com/bobpullie/TEMS | pip 패키지 | `pip install -U git+https://github.com/bobpullie/TEMS.git` |
+| **SDC** | https://github.com/bobpullie/SDC | skill markdown | `curl -o .claude/skills/SDC.md https://raw.githubusercontent.com/bobpullie/SDC/main/SKILL.md` |
+| **DVC** | https://github.com/bobpullie/DVC | skill plugin | `git -C .claude/skills/dvc pull` |
+| **TWK** | https://github.com/bobpullie/TWK | skill plugin | `git -C ~/.claude/skills/TWK pull` |
+| **handover** | https://github.com/bobpullie/handover | skill plugin | `git -C .claude/skills/handover pull` |
+
+### 4 원칙 (게이트 조건 — 4개 모두 통과해야 GitHub push 가능)
+
+1. **상호 독립성 (Independence)** — 5개는 서로 의존성 0. TEMS 가 SDC 를 require 금지, SDC 가 DVC 를 (참고 reference 외) require 금지, 등. 각각 self-contained 작동. 한 자산 미설치라도 다른 자산은 정상 작동해야 함.
+
+2. **로컬 설치 한정 (Local-Only)** — 모든 자산은 **에이전트의 로컬 프로젝트 폴더 안에만** 설치. 프로젝트 폴더 밖 (예: `E:/AgentInterface/` 같은 hub 디렉토리, 공용 위치) 에 자산 설치 금지. TEMS 의 Python 패키지 자체는 site-packages (OS user-local) 에 들어가지만 **에이전트 자체 자산 (룰 / DB / QMD / 핸드오버 / 위키)** 은 모두 프로젝트 폴더 내부에 한정.
+
+3. **각자의 GitHub 레포 (Separate Repos)** — 5개 모두 별도 canonical GitHub 레포 보유. 한 PR 에 두 레포 묶어 처리 금지. 업데이트는 각 레포 → 각 사용자 환경 독립 sync.
+
+4. **범용성 (Universal Portability)** — 어떤 사용자, 어떤 환경 (Windows/Linux/macOS, 어떤 PC, 어떤 OS 사용자명, 어떤 한국어/영어 에이전트명) 에서든 설치/사용 가능해야 함. **이 조건 미달 = canonical GitHub 레포 push 금지.**
+   - 절대경로 박힘 금지 (`E:/...`, `C:/Users/<user>/...` 등)
+   - 특정 사용자명·회사명·한국어 에이전트명 박힘 금지
+   - 외부 hub 디렉토리 의존 금지 (`E:/AgentInterface/` 등)
+   - 모든 경로는 env var / marker walk / `Path(__file__)` / `importlib.resources` 기반 동적 해상
+
+### 위반 발견 시 절차
+
+- canonical 레포 push 후 위반 발견 → 즉시 일반화 PR (S55 마이그레이션 사례 참조 — SDC `b7b7097`, 위상군 `d911ee6`)
+- canonical push 전 위반 검출 → 위상군 본인 프로젝트 한정 사용으로 격리, canonical push 보류
+
+### 관련 인프라 (위상군 본 프로젝트)
+
+- **TCL #119** — 4-repo (현 5-repo) 체계 + upstream push 누락 금지
+- **DVC `TEMS_PATH_ORPHAN_001`** — 4 원칙 위반 (특히 #4 범용성) 정적 검출 case
+- **SDC `migration_orphan_check`** — 위반 회복 절차 (위임 brief 6번째 항목)
+- **TGL #131 (TGL-W)** — A→B 마이그레이션 완료 검증 게이트
+- auto-memory: `reference_canonical_skill_repos.md`
+
 ## 전담 영역
 - 기획 산출물을 **수학적 알고리즘/상태머신/데이터모델**로 변환
 - MRV 나선형 파이프라인 운영 (IDEATE→ANALYZE→PLAN→DESIGN→BUILD→TEST→POSTMORTEM)
