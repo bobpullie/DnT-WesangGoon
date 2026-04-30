@@ -71,3 +71,30 @@ def test_search_returns_temporal_columns(tmp_db):
     assert rows
     assert "valid_until" in rows[0]
     assert "superseded_by" in rows[0]
+
+
+def test_memorydb_preflight_excludes_superseded(tmp_db):
+    """MemoryDB.preflight() (preflight_hook.py 의 1차 retrieval path) 도 superseded 규칙 제외.
+
+    회귀 발견 컨텍스트: HybridRetriever.preflight 만 필터하던 초기 패치는 preflight_hook 의
+    primary BM25 path (db.preflight) 를 우회 → 옛 규칙이 그대로 주입되던 문제.
+    """
+    old_id = _commit_tgl(
+        tmp_db,
+        "복원은 deprecated_path/legacy.py 사용",
+        "rebuild deprecated_legacy",
+    )
+    new_id = _commit_tgl(
+        tmp_db,
+        "복원은 canonical CLI 'tems restore' 사용",
+        "rebuild deprecated_legacy canonical_cli",
+    )
+
+    from memory.tems_engine import TemporalGraph
+    tg = TemporalGraph(db=tmp_db)
+    assert tg.supersede_rule(old_id, new_id, "test") is True
+
+    res = tmp_db.preflight("rebuild deprecated_legacy", limit=10)
+    ids = {r["id"] for r in res["tgl_hits"]}
+    assert old_id not in ids, f"superseded rule {old_id} leaked into MemoryDB.preflight: {ids}"
+    assert new_id in ids, f"successor rule {new_id} missing: {ids}"

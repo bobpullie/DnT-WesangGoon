@@ -287,6 +287,10 @@ class MemoryDB:
     def preflight(self, query: str, limit: int = 5) -> dict:
         """작업 진입 전 TCL+TGL 규칙 자동 검색 (Pre-flight BM25 Retrieval)
 
+        S56-B (post-audit fix): superseded 규칙 (valid_until 비어있지 않음) 은 retrieval 단계에서 제외.
+        preflight_hook.py 가 이 method 를 1차로 사용하므로, HybridRetriever.preflight 에만
+        필터를 두면 BM25 path 를 우회해 옛 규칙이 그대로 주입됨 (실 발견).
+
         Returns:
             {
                 "tcl_hits": [...],   # 관련 체크리스트 규칙
@@ -295,6 +299,7 @@ class MemoryDB:
             }
         """
         results = self.search(query, limit=limit * 3)
+        results = [r for r in results if not r.get("valid_until")]
         return {
             "tcl_hits": [r for r in results if r["category"] == "TCL"],
             "tgl_hits": [r for r in results if r["category"] == "TGL"],
